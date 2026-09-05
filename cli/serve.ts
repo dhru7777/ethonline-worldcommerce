@@ -285,8 +285,8 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(config.port, () => {
-  console.log(`worldCommerce demo http://localhost:${config.port}`);
+server.listen(config.port, "0.0.0.0", () => {
+  console.log(`worldCommerce demo http://0.0.0.0:${config.port}`);
   console.log(`  ENS root: ${config.ens.rootLabel}.eth (${config.ens.writeMode})`);
   console.log(`  Buyer #${config.buyer.agentId} · Seller #${config.seller.agentId}`);
 });

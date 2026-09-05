@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>worldCommerce · Buyer × Shopify ENSv2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="header">
+    <a class="brand" href="/">
+      <div class="brand-name">worldCommerce</div>
+      <div class="brand-sub">human-in-the-loop · ensv2</div>
+    </a>
+    <div class="phases" id="phases">
+      <div class="phase-step lit" data-phase="identity"><div class="phase-dot"></div><div class="phase-label">identity</div></div>
+      <div class="phase-connector"></div>
+      <div class="phase-step" data-phase="intent"><div class="phase-dot"></div><div class="phase-label">intent</div></div>
+      <div class="phase-connector"></div>
+      <div class="phase-step" data-phase="offers"><div class="phase-dot"></div><div class="phase-label">offers</div></div>
+      <div class="phase-connector"></div>
+      <div class="phase-step" data-phase="ens"><div class="phase-dot"></div><div class="phase-label">ens</div></div>
+      <div class="phase-connector"></div>
+      <div class="phase-step" data-phase="guardrails"><div class="phase-dot"></div><div class="phase-label">guardrails</div></div>
+      <div class="phase-connector"></div>
+      <div class="phase-step" data-phase="payout"><div class="phase-dot"></div><div class="phase-label">payout</div></div>
+    </div>
+    <div class="header-meta" id="status">loading…</div>
+  </header>
+
+  <main class="stage">
+    <section class="panel" id="buyerPanel">
+      <div class="panel-head">
+        <div class="panel-icon">A</div>
+        <div class="panel-meta">
+          <div class="panel-name">Buyer agent</div>
+          <div class="panel-sub" id="buyerSub">ERC-8004 · Sepolia</div>
+        </div>
+        <div class="panel-actions">
+          <div class="pop-wrap" id="buyerProfileWrap">
+            <button type="button" class="profile-btn" id="buyerProfileBtn" title="Agent profile" aria-label="Buyer agent profile">◎</button>
+            <div class="popover agent-profile-pop" id="buyerPopover">
+              <div class="wallet-loading">Tap to load profile…</div>
+            </div>
+          </div>
+          <div class="pop-wrap wallet-wrap" id="buyerWalletWrap">
+            <button type="button" class="wallet-btn" id="buyerWalletBtn" title="Buyer wallet" aria-label="Buyer wallet">$</button>
+            <div class="popover wallet-pop" id="buyerWalletPop">
+              <div class="wallet-loading">Tap wallet to load…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="feed" id="feedBuyer">
+        <div class="empty-hint">Type in the bar below to talk with the buyer agent. Search Shopify — merchant ENS names are created from the results.</div>
+      </div>
+    </section>
+
+    <section class="panel" id="sellerPanel">
+      <div class="panel-head">
+        <div class="panel-icon">$</div>
+        <div class="panel-meta">
+          <div class="panel-name">Shopify · UCP merchants</div>
+          <div class="panel-sub" id="sellerSub">ENSv2 · shopify.eth</div>
+        </div>
+        <div class="panel-actions">
+          <div class="pop-wrap" id="sellerProfileWrap">
+            <button type="button" class="profile-btn" id="sellerProfileBtn" title="Seller agent profile" aria-label="Seller agent profile">◎</button>
+            <div class="popover agent-profile-pop" id="sellerPopover">
+              <div class="wallet-loading">Tap to load profile…</div>
+            </div>
+          </div>
+          <div class="pop-wrap wallet-wrap" id="sellerWalletWrap">
+            <button type="button" class="wallet-btn" id="sellerWalletBtn" title="Seller wallet" aria-label="Seller wallet">$</button>
+            <div class="popover wallet-pop" id="sellerWalletPop">
+              <div class="wallet-loading">Tap wallet to load…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="feed" id="feedSeller">
+        <div class="empty-hint">UCP · awaiting search</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="demo-footer">
+    <form class="input-bar" id="form">
+      <input id="q" placeholder="Find me chocolates under $10" autocomplete="off" />
+      <button type="submit" aria-label="Send">→</button>
+    </form>
+    <div class="demo-prompts">
+      <span>Try:</span>
+      <button type="button" class="prompt-chip" data-q="It's raining I want to go out">It's raining I want to go out</button>
+      <button type="button" class="prompt-chip" data-q="What to get for a date night">What to get for a date night</button>
+      <button type="button" class="prompt-chip" data-q="Find me chocolates under $10">Find me chocolates under $10</button>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

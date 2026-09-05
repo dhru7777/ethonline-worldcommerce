@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+local.env
+.wallets*.json
+*.log
+.DS_Store
+coverage/
+.vite/

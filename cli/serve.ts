@@ -9,6 +9,7 @@ import {
   ensureMerchantNamespaces,
   getNamespaceTree,
 } from "../src/ens/agentNamespace.js";
+import { buildEnsForest } from "../src/ens/treeModel.js";
 import { discoverProducts, parseSimpleIntent, type ParsedIntent } from "../src/ucp/discover.js";
 import { captureTurn } from "../src/intent/capture.js";
 import { verifyAgentHumanBacked } from "../src/agentkit/verify.js";
@@ -78,6 +79,17 @@ const server = createServer(async (req, res) => {
           deployment: "ethonline-sepolia-hackathon",
           ethRegistry: config.ens.ethRegistry,
           universalResolverProxy: config.ens.universalResolverProxy,
+          buyerName: config.ens.buyerName,
+          buyerRegistryName: config.ens.buyerRegistryName,
+          buyerRegistryAddress: config.ens.buyerRegistryAddress || null,
+          buyerAgentAddress: config.buyer.walletAddress || null,
+          shopifyAgentName: config.ens.shopifyAgentName,
+          shopifyAddress: config.shopify.walletAddress || config.seller.payTo || null,
+          merchants: {
+            m1: config.merchants.m1.address || null,
+            m2: config.merchants.m2.address || null,
+            m3: config.merchants.m3.address || null,
+          },
           docs: config.ens.docs,
         },
         identities: getIdentities(),
@@ -154,12 +166,41 @@ const server = createServer(async (req, res) => {
     }
 
     if (path === "/api/ens/tree") {
-      send(res, 200, getNamespaceTree());
+      const live = getNamespaceTree();
+      const forest = buildEnsForest({
+        merchantLabels: live.merchants.length
+          ? live.merchants.map((m) => ({
+              label: m.label,
+              title: m.merchantName,
+            }))
+          : undefined,
+        commissionOn: live.merchants[0]?.label,
+      });
+      send(res, 200, {
+        forest,
+        live,
+        addresses: {
+          shopifyUserRegistry: config.ens.shopifyUserRegistry || null,
+          agentShopifyRegistry: config.ens.agentShopifyRegistry || null,
+          lindtCommissionRegistry: config.ens.lindtCommissionRegistry || null,
+          permissionedResolver: config.ens.permissionedResolver || null,
+          buyerUserRegistry: config.ens.buyerUserRegistry || null,
+          agentDheerajRegistry: config.ens.agentDheerajRegistry || null,
+          buyerPermissionedResolver: config.ens.buyerPermissionedResolver || null,
+        },
+        writeMode: config.ens.writeMode,
+        explorer: {
+          shopify: "https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth",
+          dheeraj: "https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth",
+          note:
+            "Explorer Subnames/Records counters often stay 0 for custom UserRegistry — check Subregistry address on the name page; our LabelRegistered events are on-chain.",
+        },
+      });
       return;
     }
 
     async function attachEnsOffers(parsed: ParsedIntent, sequentialLabels = false) {
-      const { products, source } = await discoverProducts(parsed, 8);
+      const { products, source } = await discoverProducts(parsed, 5);
       const merchantNames = [
         ...new Set(products.map((p) => p.merchantName).filter(Boolean)),
       ];
@@ -229,6 +270,12 @@ const server = createServer(async (req, res) => {
           merchants: [],
           buyer: getIdentities().buyer,
           seller: getIdentities().seller,
+          ensNames: {
+            buyer: config.ens.buyerName,
+            buyerRegistry: config.ens.buyerRegistryName,
+            shopifyAgent: config.ens.shopifyAgentName,
+            root: `${config.ens.rootLabel}.eth`,
+          },
         });
         return;
       }
@@ -245,6 +292,12 @@ const server = createServer(async (req, res) => {
         ...discovery,
         buyer: getIdentities().buyer,
         seller: getIdentities().seller,
+        ensNames: {
+          buyer: config.ens.buyerName,
+          buyerRegistry: config.ens.buyerRegistryName,
+          shopifyAgent: config.ens.shopifyAgentName,
+          root: `${config.ens.rootLabel}.eth`,
+        },
       });
       return;
     }

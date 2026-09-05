@@ -1,11 +1,19 @@
+import type { Address } from "viem";
 import { config } from "../config/index.js";
 import { ensip25KeyForAgent } from "./erc7930.js";
+import {
+  authorizeTextRolesLive,
+  registerLabelLive,
+  setTextLive,
+  shopifyDeployerKey,
+} from "./liveRegistry.js";
 import {
   buildMerchantAgentContext,
   ENSIP26,
   ensip25RegistrationKey,
 } from "./records.js";
 import {
+  agentHubName,
   ensureUniqueLabel,
   fullMerchantName,
   sequentialMerchantLabel,
@@ -66,7 +74,6 @@ function buildTextRecords(ensName: string, merchantName: string): Record<string,
     }),
     [ENSIP26.agentEndpoint("web")]: config.seller.serviceUrl || "https://catalog.shopify.com",
     [sellerKey]: "1",
-    // Buyer binding is platform-level; still set for demo visibility on merchant leaf if desired
     [buyerKey]: "1",
     "com.worldcommerce.payment": "x402",
     "com.worldcommerce.chain": `eip155:${config.seller.chainId}`,
@@ -77,13 +84,12 @@ function buildTextRecords(ensName: string, merchantName: string): Record<string,
 
 /**
  * Lazy ENS ensure for merchants discovered in a UCP search.
- * Demo: shows creation + Permissioned Resolver text records + EAC note.
- * Live chain writes only when ENS_WRITE_MODE=live and a deployer key is set.
+ * Live: register under agent.shopify.eth hub when ENS_WRITE_MODE=live.
  */
 export async function ensureMerchantNamespaces(
   input: EnsureMerchantsInput,
 ): Promise<MerchantNamespace[]> {
-  const root = `${config.ens.rootLabel}.eth`;
+  const hub = agentHubName(config.ens.rootLabel);
   const out: MerchantNamespace[] = [];
   let seq = takenLabels.size + 1;
 
@@ -112,25 +118,59 @@ export async function ensureMerchantNamespaces(
     let txHash: string | null = null;
     let created = true;
 
-    if (config.ens.writeMode === "live" && config.ens.deployerPrivateKey) {
-      // Live Permissioned Registry register + resolver writes land in a follow-up module.
-      // For now we mark as pending live path without silently faking a hash.
-      txHash = null;
-      created = false;
+    const deployerKey = shopifyDeployerKey();
+    const agentRegistry = config.ens.agentShopifyRegistry;
+    if (config.ens.writeMode === "live" && deployerKey && agentRegistry) {
+      try {
+        const owner =
+          (config.merchants.m1.address as Address | undefined) ||
+          (config.shopify.walletAddress as Address | undefined);
+        if (!owner) throw new Error("No merchant/shopify owner address for live register");
+
+        const reg = await registerLabelLive({
+          registry: agentRegistry as Address,
+          label,
+          owner,
+          privateKey: deployerKey,
+        });
+        txHash = reg.txHash;
+
+        await setTextLive({
+          ensName,
+          key: "com.worldcommerce.version",
+          value: textRecords["com.worldcommerce.version"] || "1",
+          privateKey: deployerKey,
+        });
+        if (config.merchants.m1.address) {
+          await authorizeTextRolesLive({
+            ensName,
+            key: ENSIP26.agentEndpoint("web"),
+            account: config.merchants.m1.address as Address,
+            grant: true,
+            privateKey: deployerKey,
+          });
+        }
+        created = true;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn(`[ens live] register ${ensName} failed: ${msg}`);
+        txHash = null;
+        created = false;
+      }
     }
 
     const entry: MerchantNamespace = {
       merchantName: m.merchantName,
       label,
       ensName,
-      parentName: root,
+      parentName: hub,
       created,
       mode: input.sequentialLabels ? "sequential-prod-style" : "lazy-demo",
       writeMode: config.ens.writeMode,
       txHash,
       textRecords,
       permissionsNote:
-        "EAC: Shopify admin full control under shopify.eth; merchant operator may edit agent-endpoint[*] and com.worldcommerce.* only — not ENSIP-25 registration keys.",
+        "EAC: Shopify admin full control; merchant may edit agent-endpoint[web] — not ENSIP-25 or commission.*",
     };
 
     byMerchantKey.set(key, entry);
@@ -143,7 +183,12 @@ export async function ensureMerchantNamespaces(
 export function getNamespaceTree() {
   return {
     root: `${config.ens.rootLabel}.eth`,
-    subregistry: "shopify-user-registry (ENSv2 Permissioned Registry)",
+    agentHub: agentHubName(config.ens.rootLabel),
+    subregistry: config.ens.agentShopifyRegistry
+      ? `agent.shopify registry ${config.ens.agentShopifyRegistry}`
+      : config.ens.shopifyUserRegistry
+        ? `ShopifyUserRegistry ${config.ens.shopifyUserRegistry}`
+        : "shopify-user-registry (ENSv2)",
     merchants: [...byMerchantKey.values()],
   };
 }

@@ -33,6 +33,15 @@ export function sequentialMerchantLabel(index: number): string {
   return `merchant${index}`;
 }
 
+/** Merchant leaf under agent hub: lindt.agent.shopify.eth */
 export function fullMerchantName(label: string, rootLabel = "shopify"): string {
-  return `${label}.${rootLabel}.eth`;
+  return `${label}.agent.${rootLabel}.eth`;
+}
+
+export function agentHubName(rootLabel = "shopify"): string {
+  return `agent.${rootLabel}.eth`;
+}
+
+export function commissionName(merchantLabel: string, rootLabel = "shopify"): string {
+  return `commission.${merchantLabel}.agent.${rootLabel}.eth`;
 }

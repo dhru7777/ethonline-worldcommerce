@@ -34,10 +34,10 @@
   <main class="stage">
     <section class="panel" id="buyerPanel">
       <div class="panel-head">
-        <div class="panel-icon">A</div>
+        <div class="panel-icon panel-icon-img"><img src="/assets/agent.png" alt="" /></div>
         <div class="panel-meta">
-          <div class="panel-name">Buyer agent</div>
-          <div class="panel-sub" id="buyerSub">ERC-8004 · Sepolia</div>
+          <div class="panel-name">Buyer Agent</div>
+          <div class="panel-sub" id="buyerSub">agent.dheeraj.eth</div>
         </div>
         <div class="panel-actions">
           <div class="pop-wrap" id="buyerProfileWrap">
@@ -61,10 +61,10 @@
 
     <section class="panel" id="sellerPanel">
       <div class="panel-head">
-        <div class="panel-icon">$</div>
+        <div class="panel-icon panel-icon-img"><img src="/assets/shopify.png" alt="" /></div>
         <div class="panel-meta">
-          <div class="panel-name">Shopify · UCP merchants</div>
-          <div class="panel-sub" id="sellerSub">ENSv2 · shopify.eth</div>
+          <div class="panel-name">Shopify Agent</div>
+          <div class="panel-sub" id="sellerSub">agent.shopify.eth</div>
         </div>
         <div class="panel-actions">
           <div class="pop-wrap" id="sellerProfileWrap">
@@ -86,6 +86,36 @@
       </div>
     </section>
   </main>
+
+  <button type="button" class="ens-tree-fab" id="ensTreeBtn" aria-label="ENS Tree" title="ENS namespace tree">
+    <img class="ens-tree-fab-logo" src="/assets/ens-logo.png" alt="" width="22" height="22" />
+    <span class="ens-tree-fab-label">ENS Tree</span>
+  </button>
+
+  <div class="ens-tree-overlay" id="ensTreeOverlay" hidden>
+    <div class="ens-tree-sheet" role="dialog" aria-labelledby="ensTreeTitle">
+      <div class="ens-tree-sheet-head">
+        <div class="ens-tree-sheet-brand">
+          <img class="ens-tree-sheet-logo" src="/assets/ens-logo.png" alt="" width="28" height="28" />
+          <div>
+            <div class="ens-tree-sheet-title" id="ensTreeTitle">ENS namespace</div>
+            <div class="ens-tree-sheet-sub" id="ensTreeSub">buyer × seller agent trees</div>
+          </div>
+        </div>
+        <div class="ens-tree-sheet-actions">
+          <a class="ens-tree-ext" id="ensTreeExplorerShopify" href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth" target="_blank" rel="noopener">shopify.eth ↗</a>
+          <a class="ens-tree-ext" id="ensTreeExplorerBuyer" href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth" target="_blank" rel="noopener">dheeraj.eth ↗</a>
+          <button type="button" class="ens-tree-close" id="ensTreeClose" aria-label="Close">×</button>
+        </div>
+      </div>
+      <div class="ens-tree-legend" id="ensTreeLegend"></div>
+      <div class="ens-tree-note" id="ensTreeNote"></div>
+      <div class="ens-tree-cols" id="ensTreeCols">
+        <div class="ens-tree-col" id="ensTreeBuyer"></div>
+        <div class="ens-tree-col" id="ensTreeSeller"></div>
+      </div>
+    </div>
+  </div>
 
   <footer class="demo-footer">
     <form class="input-bar" id="form">

@@ -59,8 +59,13 @@ function shortAddr(addr: string | null | undefined) {
 }
 
 function explorerNftUrl(chainId: number, registry: string, agentId: number) {
-  if (chainId === 84532) return `https://sepolia.basescan.org/nft/${registry}/${agentId}`;
-  if (chainId === 11155111) return `https://sepolia.etherscan.io/nft/${registry}/${agentId}`;
+  // Etherscan `/nft/...` often fails/cloud-blocks; token inventory URL is stable.
+  if (chainId === 84532) {
+    return `https://sepolia.basescan.org/token/${registry}?a=${agentId}`;
+  }
+  if (chainId === 11155111) {
+    return `https://sepolia.etherscan.io/token/${registry}?a=${agentId}`;
+  }
   return scan8004AgentUrl(chainId, agentId);
 }
 
@@ -86,22 +91,26 @@ async function fetchScanAgent(chainId: number, agentId: number): Promise<Record<
   if (config.scan8004.apiKey) headers["X-API-Key"] = config.scan8004.apiKey;
 
   for (const base of bases) {
+    // Prefer numeric chainId — slug paths return INVALID_PARAMS on public API.
     const urls = [
-      `${base}/agents/${slug}/${agentId}`,
       `${base}/agents/${chainId}/${agentId}`,
+      `${base}/agents/${slug}/${agentId}`,
     ];
     for (const url of urls) {
       try {
         const res = await fetch(url, {
           headers: url.includes("/public") ? { Accept: "application/json" } : headers,
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(15000),
         });
         if (!res.ok) continue;
         const body = (await res.json()) as Record<string, unknown>;
+        if (body?.success === false) continue;
         if (body?.success === true && body.data && typeof body.data === "object") {
           return body.data as Record<string, unknown>;
         }
-        if (body?.token_id != null || body?.agent_id != null || body?.name) return body;
+        if (body?.token_id != null || body?.agent_id != null || body?.name) {
+          return body;
+        }
       } catch {
         /* try next */
       }
@@ -141,10 +150,7 @@ export async function buildAgentProfile(role: "buyer" | "seller"): Promise<Agent
   if (agentWallet) {
     links.push({
       label: "Agent wallet",
-      url: explorerAddressUrl(
-        role === "seller" ? config.seller.chainId : base.chainId,
-        agentWallet,
-      ),
+      url: explorerAddressUrl(base.chainId, agentWallet),
     });
   }
 

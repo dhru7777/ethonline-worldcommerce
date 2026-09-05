@@ -11,7 +11,7 @@ User prompt
   → Permissioned Resolver text records (ENSIP-25/26 + commerce keys)
   → EAC permissions (Shopify admin vs merchant operator)
   → Rank / select offer
-  → Seller agent (ERC-8004 #6832 · Base Sepolia) + x402 incentive
+  → Seller agent (ERC-8004 #6832 · Ethereum Sepolia) + settlement
   → Receipt / reputation
   → (next) World AgentKit human-backing gate on capacity + payout
 ```
@@ -28,13 +28,17 @@ not production docs. Always override viem’s Universal Resolver with
 Register head names in the [hackathon ENS App](https://hackathon-deployment-manager-app-v4.ens-cf.workers.dev/);
 inspect via [ENS Explorer](https://hackathon-deployment-portal-app.ens-cf.workers.dev/).
 
+**Agent trees:** `shopify.eth → agent → {merchant} → commission…` and
+`dheeraj.eth → agent → intent|guardrail|payment|feedback`. Deploy nested registries with
+`npm run ens:deploy`, wire with `npm run ens:live`. UI: bottom-left **ENS Tree** panel.
+
 ## Chain split
 
 | Concern | Chain |
 |---|---|
 | ENSv2 registries / resolvers | Ethereum Sepolia |
 | Buyer ERC-8004 | Ethereum Sepolia |
-| Seller ERC-8004 + x402 USDC | Base Sepolia |
+| Seller ERC-8004 + settlement USDC | Ethereum Sepolia |
 
 ENSIP-25 uses ERC-7930 interoperable addresses so the same registry bytecode on different chains cannot satisfy the wrong verification key.
 
@@ -43,18 +47,21 @@ ENSIP-25 uses ERC-7930 interoperable addresses so the same registry bytecode on 
 ```
 src/
   config/           env + chain helpers
-  ens/              slug, ERC-7930, records, lazy namespace ensure
+  ens/              slug, ERC-7930, records, lazy ensure, liveRegistry writes
   identity/         buyer + seller ERC-8004 views
   ucp/              Shopify catalog discovery
   agentkit/         (next) World human-backing
   orchestrator/     (next) capacity + incentive gates
   x402/             (next) Base settlement helpers
+ens-contracts/      minimal ShopifyUserRegistry + PermissionedCommerceResolver
 ui/                 split buyer / seller demo
 cli/serve.ts        local demo server
+cli/ens-live-setup.ts  wire subregistry + EAC allow/deny
 ```
 
-## EAC demo (planned live)
+## EAC demo (live)
 
-- Shopify admin: full control under `shopify.eth`
-- Merchant operator: may edit `agent-endpoint[*]` and `com.worldcommerce.*`
-- Denied: changing ENSIP-25 `agent-registration[…][…]` keys
+- Shopify admin: full control under `shopify.eth` (resolver `admin`)
+- Merchant operator: may edit keys granted via `authorizeTextRoles` (e.g. `agent-endpoint[web]`)
+- Denied: keys not authorized (e.g. `ensip25-registration` / ENSIP-25 registration keys)
+- CLI: `npm run ens:live` → allow tx + deny revert proof

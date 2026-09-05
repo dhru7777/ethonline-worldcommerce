@@ -1,0 +1,6 @@
+/* BACKUP snapshot note — ENS Tree v1 dense-card CSS lived in styles.css
+ * under "ENS Tree FAB + sheet" before the v2 collapsible full-window redesign
+ * (2026-09-05). JS render for v1 is in ui/ens-tree-v1.backup.js.
+ * To revert: restore renderEnsNode from that file and prior .ens-node* rules
+ * from git history / this conversation.
+ */

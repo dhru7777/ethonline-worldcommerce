@@ -8,3 +8,6 @@ local.env
 .DS_Store
 coverage/
 .vite/
+ens-contracts/out/
+ens-contracts/cache/
+ens-contracts/broadcast/

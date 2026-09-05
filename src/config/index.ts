@@ -38,7 +38,7 @@ export const config = {
   port: envInt("PORT", 5190),
   buyer: {
     agentId: envInt("BUYER_AGENT_ID", 9638),
-    name: env("BUYER_AGENT_NAME", "craidt-buyer-agent"),
+    name: env("BUYER_AGENT_NAME", "Buyer Agent"),
     chainId: envInt("BUYER_CHAIN_ID", 11155111),
     identityRegistry: env(
       "BUYER_IDENTITY_REGISTRY",
@@ -49,8 +49,8 @@ export const config = {
   },
   seller: {
     agentId: envInt("SELLER_AGENT_ID", 6832),
-    name: env("SELLER_AGENT_NAME", "shopify-commerce-agent"),
-    chainId: envInt("SELLER_CHAIN_ID", 84532),
+    name: env("SELLER_AGENT_NAME", "Shopify Agent"),
+    chainId: envInt("SELLER_CHAIN_ID", 11155111),
     identityRegistry: env(
       "SELLER_IDENTITY_REGISTRY",
       "0x8004A818BFB912233c491871b3d84c89A494BD9e",
@@ -102,7 +102,7 @@ export const config = {
     "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
   ),
   x402: {
-    network: env("X402_NETWORK", "eip155:84532"),
+    network: env("X402_NETWORK", "eip155:11155111"),
     facilitatorUrl: env("X402_FACILITATOR_URL", "https://x402.org/facilitator"),
   },
   scan8004: {
@@ -148,8 +148,32 @@ export const config = {
       "ENS_UNIVERSAL_RESOLVER_PROXY",
       "0xd26f2040d083af1cd2962ba303f4bea0c4faf142",
     ),
-    deployerPrivateKey: env("ENS_DEPLOYER_PRIVATE_KEY"),
+    deployerPrivateKey: env(
+      "ENS_DEPLOYER_PRIVATE_KEY",
+      env("SHOPIFY_WALLET_PRIVATE_KEY", env("SELLER_WALLET_PRIVATE_KEY")),
+    ),
+    /** Minimal IRegistry under shopify.eth (replaces broken hackathon UserRegistryImpl). */
+    shopifyUserRegistry: env("ENS_SHOPIFY_USER_REGISTRY"),
+    /** Nested registry for agent.shopify.eth merchants. */
+    agentShopifyRegistry: env("ENS_AGENT_SHOPIFY_REGISTRY"),
+    /** Nested registry for commission.lindt.agent.shopify.eth (demo). */
+    lindtCommissionRegistry: env("ENS_LINDT_COMMISSION_REGISTRY"),
+    permissionedResolver: env("ENS_PERMISSIONED_RESOLVER"),
+    /** Buyer dheeraj.eth subregistry + agent hub + buyer-admin resolver. */
+    buyerUserRegistry: env("ENS_BUYER_USER_REGISTRY"),
+    agentDheerajRegistry: env("ENS_AGENT_DHEERAJ_REGISTRY"),
+    buyerPermissionedResolver: env(
+      "ENS_BUYER_PERMISSIONED_RESOLVER",
+      env("ENS_PERMISSIONED_RESOLVER"),
+    ),
     rootLabel: env("ENS_ROOT_LABEL", "shopify"),
+    /** Buyer head agent namespace (under dheeraj.eth). */
+    buyerName: env("ENS_BUYER_NAME", "agent.dheeraj.eth"),
+    /** Parent registry for the buyer agent (human wallet). */
+    buyerRegistryName: env("ENS_BUYER_REGISTRY_NAME", "dheeraj.eth"),
+    buyerRegistryAddress: env("ENS_BUYER_REGISTRY_ADDRESS"),
+    /** Shopify platform / panel — head name; agent hub is agent.shopify.eth */
+    shopifyAgentName: env("ENS_SHOPIFY_AGENT_NAME", "agent.shopify.eth"),
     lazyCreate: env("ENS_LAZY_CREATE", "true").toLowerCase() !== "false",
     writeMode: (env("ENS_WRITE_MODE", "dry-run") === "live" ? "live" : "dry-run") as
       | "live"
@@ -186,5 +210,7 @@ export function scan8004ChainSlug(chainId: number): string {
 }
 
 export function scan8004AgentUrl(chainId: number, agentId: number): string {
+  // Web UI requires the chain slug (`/agents/sepolia/9638`).
+  // Numeric `/agents/11155111/9638` returns "Agent Not Found" in the browser.
   return `${config.scan8004.webBase}/agents/${scan8004ChainSlug(chainId)}/${agentId}`;
 }

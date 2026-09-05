@@ -2,31 +2,31 @@
 
 ENSv2 Shopify agent namespaces for agentic commerce — Sepolia beta.
 
-Shopify owns the head registry (`shopify.eth`). Merchants discovered from a live product search get subnames under that registry. Buyer and seller agents keep ERC-8004 identity; ENS answers namespace, delegation, and ENSIP-25/26 verification.
+Shopify owns the head registry (`shopify.eth` → `agent.shopify.eth`). Merchants get `{slug}.agent.shopify.eth`. Buyer roles live under `dheeraj.eth` → `agent.dheeraj.eth` (`intent` / `guardrail` / `payment` / `feedback`). ERC-8004 identity + ENSIP-25/26 + EAC.
 
 ## What is central
 
 | Layer | Job |
 |---|---|
-| **ENSv2 (Sepolia)** | Head registry + merchant subnames + Permissioned Resolver + EAC |
+| **ENSv2 (Sepolia)** | Nested UserRegistry trees + PermissionedCommerceResolver + EAC |
 | **ENSIP-25 / 26** | `agent-registration[ERC-7930][id]` + `agent-context` / `agent-endpoint[*]` |
-| **ERC-8004** | Buyer identity (Sepolia) + seller identity (Base Sepolia) |
+| **ERC-8004** | Buyer + seller identity (Ethereum Sepolia) |
 | **Shopify UCP** | Product discovery — merchant ENS labels come from search hits |
-| **x402** | Incentive / payment rail on Base Sepolia |
+| **x402** | Incentive / payment rail (Sepolia MockUSDC in demo) |
 | **World AgentKit** | Human-backing gate (wired next) |
 
 ## Naming rules
 
-- **Demo:** search `chocolates under $10` → only chocolate merchants appear → each gets `{slug}.shopify.eth` lazily (e.g. `cocoa-house.shopify.eth`). No fixed Nike/Adidas list.
-- **Prod-style option:** `sequentialLabels: true` → `merchant1.shopify.eth`, `merchant2.shopify.eth`, …
-- Subagents (`commerce.*` / `inventory.*` / `support.*`) are **on hold**.
-
+- **Seller:** `lindt.agent.shopify.eth` (+ demo `commission.lindt.agent.shopify.eth`)
+- **Buyer:** `intent.agent.dheeraj.eth`, `guardrail…`, `payment…`, `feedback…`
+- **UI:** bottom-left **ENS Tree** button visualizes both sides + permissions
+- **Ops:** `npm run ens:deploy` then `npm run ens:live`
 ## Agents (defaults — override via `.env`)
 
 | Role | Agent ID | Chain |
 |---|---|---|
 | Buyer | `9638` | Ethereum Sepolia |
-| Seller / Shopify platform | `6832` | Base Sepolia |
+| Seller / Shopify platform | `6832` | Ethereum Sepolia |
 
 Monad is not used.
 
@@ -51,7 +51,7 @@ Try: `Find me chocolates under $10` → Approve the pick.
 - `GET /api/health` — ENS mode + identities
 - `GET /api/identities` — buyer / seller ERC-8004 views + ENSIP-25 keys
 - `GET /api/agent/buyer|seller` — live 8004scan profile (ID / Rank / Feedback / Verify)
-- `GET /api/wallet/buyer|seller` — Base Sepolia ETH+USDC balances
+- `GET /api/wallet/buyer|seller` — Sepolia ETH+USDC balances
 - `GET /api/ens/tree` — current in-memory namespace tree
 - `POST /api/discover` `{ "text": "chocolates under $10" }` — UCP (or fallback) + lazy ENS ensure
 - `POST /api/turn` — multi-turn intent → UCP offers + ENS

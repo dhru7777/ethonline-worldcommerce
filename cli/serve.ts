@@ -46,11 +46,20 @@ function send(
   } else {
     payload = JSON.stringify(body, null, 2);
   }
-  res.writeHead(status, {
+  const headers: Record<string, string> = {
     "Content-Type": type,
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-  });
+  };
+  // Keep Railway/demo UI from serving a stale HTML/CSS/JS shell after deploys.
+  if (
+    type.startsWith("text/html") ||
+    type.startsWith("text/css") ||
+    type.startsWith("text/javascript")
+  ) {
+    headers["Cache-Control"] = "no-store, max-age=0";
+  }
+  res.writeHead(status, headers);
   res.end(payload);
 }
 

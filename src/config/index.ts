@@ -87,7 +87,20 @@ export const config = {
   },
   agentkit: {
     assumeHumanBacked: env("AGENTKIT_ASSUME_HUMAN_BACKED", "true").toLowerCase() !== "false",
+    /** Skip live AgentBook and always use assume (debug only). */
+    forceAssume: env("AGENTKIT_FORCE_ASSUME", "false").toLowerCase() === "true",
     rpcUrl: env("WORLD_AGENTKIT_RPC"),
+    capacityTier: env("AGENTKIT_CAPACITY_TIER", "$250"),
+  },
+  worldId: {
+    appId: env("WORLD_ID_APP_ID", "app_d7cb9f75b70f64990bb94af141f1ba70"),
+    rpId: env("WORLD_ID_RP_ID"),
+    action: env("WORLD_ID_ACTION", "human-backed-agent"),
+    signerAddress: env("WORLD_ID_SIGNER_ADDRESS"),
+    /** Returned once by configure_world_id — never commit. */
+    privateKey: env("WORLD_ID_PRIVATE_KEY"),
+    verifyEndpoint: env("WORLD_ID_VERIFY_ENDPOINT"),
+    statusEndpoint: env("WORLD_ID_STATUS_ENDPOINT"),
   },
   explorers: {
     sepolia: env("EXPLORER_SEPOLIA_URL", "https://sepolia.etherscan.io"),

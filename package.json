@@ -11,6 +11,9 @@
     "ens:register": "tsx cli/register-eth-name.ts",
     "ens:deploy": "tsx cli/ens-deploy-trees.ts",
     "ens:live": "tsx cli/ens-live-setup.ts",
+    "agentkit:prereq": "tsx cli/agentkit-prereq.ts prereq",
+    "agentkit:status": "tsx cli/agentkit-prereq.ts status",
+    "agentkit:register": "tsx cli/agentkit-prereq.ts register",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -18,6 +21,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@worldcoin/agentkit": "^0.2.1",
     "tsx": "^4.19.0",
     "viem": "^2.31.0"
   },

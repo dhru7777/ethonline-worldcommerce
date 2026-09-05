@@ -665,27 +665,29 @@ body {
 .ens-tree-fab {
   position: fixed;
   left: 16px;
-  bottom: 16px;
-  z-index: 200;
+  /* Sit above the sticky demo footer so the control stays visible in production */
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 400;
   font: inherit;
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 9px 14px 9px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border-hi);
-  background: var(--surface);
-  color: var(--text);
+  padding: 10px 16px 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s, opacity 0.2s;
 }
 .ens-tree-fab:hover {
-  background: var(--card);
-  border-color: var(--text);
+  background: #222;
+  border-color: #222;
   transform: translateY(-1px);
 }
 .ens-tree-fab-logo {
@@ -695,6 +697,11 @@ body {
   height: 22px;
   border-radius: 50%;
   object-fit: cover;
+  filter: invert(1);
+  background: #fff;
+}
+.ens-tree-fab-label {
+  color: #fff;
 }
 .ens-tree-sheet-logo {
   flex-shrink: 0;
@@ -707,7 +714,7 @@ body {
 .ens-tree-overlay {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 500;
   background: rgba(245, 245, 245, 0.82);
   backdrop-filter: blur(8px);
   display: flex;
@@ -937,7 +944,7 @@ body {
 
 @media (max-width: 860px) {
   .ens-tree-cols { grid-template-columns: 1fr; gap: 18px; }
-  .ens-tree-fab { left: 12px; bottom: 12px; }
+  .ens-tree-fab { left: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .ens-tree-overlay { padding: 10px; }
   .ens-tree-sheet-actions .ens-tree-ext { display: none; }
 }

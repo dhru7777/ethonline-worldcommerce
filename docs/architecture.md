@@ -13,8 +13,13 @@ User prompt
   → Rank / select offer
   → Seller agent (ERC-8004 #6832 · Ethereum Sepolia) + settlement
   → Receipt / reputation
-  → (next) World AgentKit human-backing gate on capacity + payout
+  → World AgentKit / AgentBook human-backing gate on capacity + payout
 ```
+
+## AgentKit / Continuity
+
+Live AgentBook lookup via `@worldcoin/agentkit` (no Sandbox required for reads).
+Registration needs World App: `npm run agentkit:register`. Details: [agentkit.md](./agentkit.md).
 
 ## ENSv2 centrality
 

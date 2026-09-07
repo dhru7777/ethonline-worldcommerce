@@ -7,6 +7,10 @@
 export const ENS_EXPLORER =
   "https://hackathon-deployment-portal-app.ens-cf.workers.dev";
 
+/** Buyer wallet that owns dheeraj.eth / agent names in the hackathon explorer. */
+export const ENS_BUYER_ADDR =
+  "0xCD643061B9a5D96AD8595B252fE098EA33a39D91";
+
 export type EnsTreePerm = {
   can: string[];
   deny: string[];
@@ -20,6 +24,7 @@ export type EnsTreeNode = {
   live?: boolean;
   placeholder?: boolean;
   explorerUrl?: string;
+  recordsUrl?: string;
   perms: EnsTreePerm;
   children?: EnsTreeNode[];
 };
@@ -29,10 +34,25 @@ export type EnsForest = {
   seller: EnsTreeNode;
   legend: { can: string; deny: string; note: string };
   explorer: string;
+  links: {
+    shopify: string;
+    shopifyRecords: string;
+    dheeraj: string;
+    dheerajRecords: string;
+    buyerNames: string;
+  };
 };
 
-function explorerUrl(name: string): string {
+export function explorerUrl(name: string): string {
   return `${ENS_EXPLORER}/${encodeURIComponent(name)}`;
+}
+
+export function recordsUrl(name: string): string {
+  return `${ENS_EXPLORER}/${encodeURIComponent(name)}/records`;
+}
+
+export function addrNamesUrl(address: string): string {
+  return `${ENS_EXPLORER}/addr/${address}/names`;
 }
 
 export function buildEnsForest(opts?: {
@@ -56,6 +76,7 @@ export function buildEnsForest(opts?: {
         task: `${m.title} · UCP hit · ENSIP-25/26`,
         live: true,
         explorerUrl: explorerUrl(ensName),
+        recordsUrl: recordsUrl(ensName),
         perms: {
           can: ["agent-endpoint[web]", "agent-context", "com.worldcommerce.*"],
           deny: ["ensip25-registration", "commission.*"],
@@ -72,6 +93,7 @@ export function buildEnsForest(opts?: {
             task: "BPS · payout split · incentive release",
             live: true,
             explorerUrl: explorerUrl(cName),
+            recordsUrl: recordsUrl(cName),
             perms: {
               can: ["com.worldcommerce.commission", "com.worldcommerce.payout"],
               deny: ["agent-endpoint[*]", "ensip25-registration", "spend"],
@@ -115,10 +137,17 @@ export function buildEnsForest(opts?: {
 
   return {
     explorer: ENS_EXPLORER,
+    links: {
+      shopify: explorerUrl("shopify.eth"),
+      shopifyRecords: recordsUrl("shopify.eth"),
+      dheeraj: explorerUrl("dheeraj.eth"),
+      dheerajRecords: recordsUrl("dheeraj.eth"),
+      buyerNames: addrNamesUrl(ENS_BUYER_ADDR),
+    },
     legend: {
       can: "EAC allow",
       deny: "EAC deny",
-      note: "Expand a row for task · permissions · explorer",
+      note: "Expand a row · open name / records on the ENS explorer",
     },
     buyer: {
       id: "dheeraj",
@@ -127,6 +156,7 @@ export function buildEnsForest(opts?: {
       task: "Root admin · wallet USDC · grant/revoke agent roles",
       live: true,
       explorerUrl: explorerUrl("dheeraj.eth"),
+      recordsUrl: recordsUrl("dheeraj.eth"),
       perms: {
         can: ["ROOT · all keys", "setSubregistry", "authorize*"],
         deny: [],
@@ -139,6 +169,7 @@ export function buildEnsForest(opts?: {
           task: "Orchestrates purchase agents under one namespace",
           live: true,
           explorerUrl: explorerUrl("agent.dheeraj.eth"),
+          recordsUrl: recordsUrl("agent.dheeraj.eth"),
           perms: {
             can: ["agent-context", "ENSIP-25 bind"],
             deny: ["direct USDC without payment agent"],
@@ -151,6 +182,7 @@ export function buildEnsForest(opts?: {
               task: "Capture & clarify — date night, budget, vibe",
               live: true,
               explorerUrl: explorerUrl("intent.agent.dheeraj.eth"),
+              recordsUrl: recordsUrl("intent.agent.dheeraj.eth"),
               perms: {
                 can: ["agent-context", "com.worldcommerce.intent"],
                 deny: ["payment.*", "ensip25-registration", "spend"],
@@ -163,6 +195,7 @@ export function buildEnsForest(opts?: {
               task: "Budget · merchant quality · human approve/reject",
               live: true,
               explorerUrl: explorerUrl("guardrail.agent.dheeraj.eth"),
+              recordsUrl: recordsUrl("guardrail.agent.dheeraj.eth"),
               perms: {
                 can: ["com.worldcommerce.guardrail", "com.worldcommerce.approval"],
                 deny: ["spend", "rewrite intent after lock"],
@@ -175,6 +208,7 @@ export function buildEnsForest(opts?: {
               task: "MockUSDC settle · receipts · commission read",
               live: true,
               explorerUrl: explorerUrl("payment.agent.dheeraj.eth"),
+              recordsUrl: recordsUrl("payment.agent.dheeraj.eth"),
               perms: {
                 can: ["com.worldcommerce.receipt", "spend (wallet policy)"],
                 deny: ["change ENSIP-25", "forge feedback"],
@@ -187,6 +221,7 @@ export function buildEnsForest(opts?: {
               task: "ERC-8004 reputation → seller agent",
               live: true,
               explorerUrl: explorerUrl("feedback.agent.dheeraj.eth"),
+              recordsUrl: recordsUrl("feedback.agent.dheeraj.eth"),
               perms: {
                 can: ["com.worldcommerce.feedback", "8004 giveFeedback"],
                 deny: ["payment keys", "raise budget"],
@@ -203,6 +238,7 @@ export function buildEnsForest(opts?: {
       task: "Head registry · setSubregistry · Shopify agent #6832",
       live: true,
       explorerUrl: explorerUrl("shopify.eth"),
+      recordsUrl: recordsUrl("shopify.eth"),
       perms: {
         can: ["ROOT · all keys", "setSubregistry", "authorize*"],
         deny: [],
@@ -215,6 +251,7 @@ export function buildEnsForest(opts?: {
           task: "Merchant namespace hub — labels from live search",
           live: true,
           explorerUrl: explorerUrl("agent.shopify.eth"),
+          recordsUrl: recordsUrl("agent.shopify.eth"),
           perms: {
             can: ["register merchants", "agent-context"],
             deny: ["buyer wallet spend"],

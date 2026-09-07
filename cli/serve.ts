@@ -14,6 +14,7 @@ import { discoverProducts, parseSimpleIntent, type ParsedIntent } from "../src/u
 import { captureTurn } from "../src/intent/capture.js";
 import { verifyAgentHumanBacked } from "../src/agentkit/verify.js";
 import { merchantPayToForOffer, settlePurchase } from "../src/payments/settle.js";
+import { submitPurchaseFeedback } from "../src/identity/feedback.js";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -174,6 +175,29 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (path === "/api/feedback" && req.method === "POST") {
+      const body = (await readJson(req)) as {
+        stars?: number;
+        title?: string;
+        ensName?: string;
+        agentId?: number;
+      };
+      try {
+        const result = await submitPurchaseFeedback({
+          stars: Number(body.stars),
+          title: body.title,
+          ensName: body.ensName,
+          agentId: body.agentId,
+        });
+        send(res, 200, { ok: true, feedback: result });
+      } catch (err) {
+        send(res, 500, {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+      return;
+    }
+
     if (path === "/api/ens/tree") {
       const live = getNamespaceTree();
       const forest = buildEnsForest({
@@ -200,9 +224,13 @@ const server = createServer(async (req, res) => {
         writeMode: config.ens.writeMode,
         explorer: {
           shopify: "https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth",
+          shopifyRecords:
+            "https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth/records",
           dheeraj: "https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth",
-          note:
-            "Explorer Subnames/Records counters often stay 0 for custom UserRegistry — check Subregistry address on the name page; our LabelRegistered events are on-chain.",
+          dheerajRecords:
+            "https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth/records",
+          buyerNames:
+            "https://hackathon-deployment-portal-app.ens-cf.workers.dev/addr/0xCD643061B9a5D96AD8595B252fE098EA33a39D91/names",
         },
       });
       return;

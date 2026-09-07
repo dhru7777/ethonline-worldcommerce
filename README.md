@@ -2,25 +2,27 @@
 
 ENSv2 agent namespaces for Shopify UCP commerce — buyer roles under `dheeraj.eth`, merchant agents under `shopify.eth`, ERC-8004 identity, Sepolia MockUSDC settlement, and World AgentKit human-backing.
 
-Forked from the [midnightx402](https://github.com/NikhilMahana/midnightx402) commerce-agent lineage (Nikhil Mahana) and rebuilt around **ENSv2 + ERC-8004 + Shopify UCP** for ETHOnline.
+**Live demo:** [https://worldcommerce-production.up.railway.app](https://worldcommerce-production.up.railway.app)  
+  
 
-**Live demo:** [https://worldcommerce-production.up.railway.app](https://worldcommerce-production.up.railway.app)
 
 ## Final Submission
 
-| Field | Value |
-|---|---|
-| **Project** | worldCommerce |
-| **Track focus** | ENSv2 (Sepolia hackathon) · ERC-8004 · Shopify UCP · x402-style settlement |
-| **Demo** | Split-screen buyer × Shopify agents + bottom-left **ENS Tree** |
-| **Chain** | Ethereum Sepolia (ENS, 8004, MockUSDC) |
-| **Buyer agent** | ERC-8004 `#9638` · `agent.dheeraj.eth` |
-| **Seller / Shopify** | ERC-8004 `#6832` · `agent.shopify.eth` |
-| **Repo** | [dhru7777/ethonline-worldcommerce](https://github.com/dhru7777/ethonline-worldcommerce) |
+
+| Field                | Value                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| **Project**          | worldCommerce                                                                           |
+| **Track focus**      | ENSv2 (Sepolia hackathon) · ERC-8004 · Shopify UCP · x402-style settlement              |
+| **Demo**             | Split-screen buyer × Shopify agents + bottom-left **ENS Tree**                          |
+| **Chain**            | Ethereum Sepolia (ENS, 8004, MockUSDC)                                                  |
+| **Buyer agent**      | ERC-8004 `#9638` · `agent.dheeraj.eth`                                                  |
+| **Seller / Shopify** | ERC-8004 `#6832` · `agent.shopify.eth`                                                  |
+| **Repo**             | [dhru7777/ethonline-worldcommerce](https://github.com/dhru7777/ethonline-worldcommerce) |
+
 
 ## Product Rule
 
-The agent works for the human, not the highest bidder.
+The agent works for the human
 
 ```text
 Intent → discover eligible offers → guardrails / capacity → human approve
@@ -28,20 +30,6 @@ Intent → discover eligible offers → guardrails / capacity → human approve
 ```
 
 Merchant ENS labels are derived from **this search’s UCP hits**, not a hard-coded brand list. Removing ENSv2 breaks namespace resolution and the permission demo.
-
-## Run the Unified Demo
-
-```bash
-cp .env.example .env
-npm install
-npm run demo
-```
-
-Open [http://localhost:5190](http://localhost:5190).
-
-Try: `Find me chocolates under $10` → Approve the pick.
-
-Bottom-left **ENS Tree** opens the live buyer × seller namespace forest (`dheeraj.eth` / `shopify.eth`) with explorer links.
 
 ## End-to-End Loop
 
@@ -59,49 +47,111 @@ User Intent
 → Receipt / feedback
 ```
 
+
+
 ## Low-Level Design
+
+Two rails sit beside discovery and settlement:
+
+1. **ENSv2** — who each agent/merchant *is* on-chain (nested registries, permissioned text, EAC).
+2. **Worldcoin AgentKit** — whether the buyer agent is *human-backed* (AgentBook + World ID) before capacity / payout proceeds.
 
 ```mermaid
 flowchart TD
-  Human[Human buyer] -->|prompt| UI[ui/app.js]
+  Human[Human buyer] -->|shopping prompt| UI[ui/app.js]
   UI -->|POST /api/turn| Server[cli/serve.ts]
 
-  subgraph Discovery
+  subgraph Discovery[Discovery]
     Server --> Intent[captureTurn / parseIntent]
     Intent --> UCP[Shopify UCP searchCatalog]
-    UCP --> ENS[ensureMerchantNamespaces]
-    ENS --> Tree[GET /api/ens/tree]
   end
 
-  Tree --> UI
-  UI --> Approval{Human approval}
+  subgraph ENS[ENSv2 Sepolia · namespaces + permissions]
+    UCP -->|unique merchant slugs| Ensure[ensureMerchantNamespaces]
+    Ensure --> SellerTree["shopify.eth → agent → {slug}"]
+    Ensure --> BuyerTree["dheeraj.eth → agent → intent|guardrail|payment|feedback"]
+    SellerTree --> Resolver[PermissionedCommerceResolver]
+    BuyerTree --> Resolver
+    Resolver --> Records[ENSIP-25/26 + commerce text]
+    Resolver --> EAC[EAC allow / deny roles]
+    Ensure --> TreeAPI[GET /api/ens/tree]
+    TreeAPI --> Fab[ENS Tree FAB in UI]
+  end
+
+  subgraph World[Worldcoin · human-backed agent]
+    WorldID[World ID RP + action human-backed-agent]
+    WorldID --> AgentBook[AgentBook lookupHuman wallet]
+    AgentBook --> Verify[src/agentkit/verify.ts]
+    Verify -->|human-backed?| Gate{Capacity / payout gate}
+  end
+
+  subgraph Identity8004[ERC-8004 Sepolia]
+    Buyer8004[Buyer agent #9638]
+    Seller8004[Seller / Shopify #6832]
+  end
+
+  Fab --> UI
+  Buyer8004 -.-> UI
+  Seller8004 -.-> UI
+  UI --> Approval{Human Approve / Reject}
+  Verify -.->|deny holds commission| Approval
   Approval -->|reject| Stop[Stop]
-  Approval -->|approve| Pay[settlePurchase MockUSDC]
-
-  subgraph Identity
-    Buyer8004[Buyer ERC-8004 #9638]
-    Seller8004[Seller ERC-8004 #6832]
-    AgentKit[World AgentKit AgentBook]
-  end
-
+  Approval -->|approve + gate pass| Pay[settlePurchase MockUSDC]
   Pay --> Receipt[Receipt / feedback]
-  AgentKit -.->|human-backed gate| Approval
 ```
 
-| Boundary | Owner | Contract |
-|---|---|---|
-| Demo HTTP | `cli/serve.ts` | Serves `ui/` + health, turn, discover, ENS tree, wallets |
-| ENS trees | `src/ens/*` + `ens-contracts/` | Nested UserRegistry + PermissionedCommerceResolver |
-| Discovery | `src/ucp/` | Shopify UCP → merchant labels |
-| Settlement | `src/payments/` | Sepolia MockUSDC + commission BPS |
-| Human gate | `src/agentkit/` | AgentBook lookup (+ demo assume) |
+
+
+
+
+### What ENS owns
+
+
+| Piece                                    | Role                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| `shopify.eth` / `dheeraj.eth` head names | Parent registries on ETHOnline Sepolia                                         |
+| Nested `UserRegistry` (`ens-contracts/`) | Subnames: merchants under `agent.shopify.eth`, roles under `agent.dheeraj.eth` |
+| `PermissionedCommerceResolver`           | Text records + EAC (Shopify admin vs merchant operator)                        |
+| ENSIP-25 / 26                            | Agent registration + endpoint / context keys                                   |
+| UI **ENS Tree**                          | Read model of both forests (`/api/ens/tree`)                                   |
+
+
+Without ENSv2, merchant labels and the permission demo do not resolve.
+
+### What Worldcoin owns
+
+
+| Piece                             | Role                                                        |
+| --------------------------------- | ----------------------------------------------------------- |
+| World ID RP (`WORLD_ID_*`)        | Cloud verify action `human-backed-agent`                    |
+| AgentBook (`@worldcoin/agentkit`) | `lookupHuman(buyerWallet)` on World Chain                   |
+| `verifyAgentHumanBacked`          | Gate used before capacity / payout                          |
+| `AGENTKIT_ASSUME_HUMAN_BACKED`    | Demo allow path until the wallet is registered in World App |
+
+
+ENS answers **naming + permissions**. Worldcoin answers **human continuity** for the buyer agent. ERC-8004 is separate identity/reputation on Sepolia.
+
+
+| Boundary       | Owner                          | Contract                                                 |
+| -------------- | ------------------------------ | -------------------------------------------------------- |
+| Demo HTTP      | `cli/serve.ts`                 | Serves `ui/` + health, turn, discover, ENS tree, wallets |
+| ENS trees      | `src/ens/*` + `ens-contracts/` | Nested UserRegistry + PermissionedCommerceResolver       |
+| Worldcoin gate | `src/agentkit/`                | AgentBook lookup + World ID RP config                    |
+| Discovery      | `src/ucp/`                     | Shopify UCP → merchant labels                            |
+| Settlement     | `src/payments/`                | Sepolia MockUSDC + commission BPS                        |
+| ERC-8004       | `src/identity/`                | Buyer `#9638` · Seller `#6832`                           |
+
+
+
 
 ## Naming
 
-| Side | Names |
-|---|---|
-| **Seller** | `shopify.eth` → `agent` → `lindt` / UCP slugs → optional `commission…` |
-| **Buyer** | `dheeraj.eth` → `agent` → `intent` · `guardrail` · `payment` · `feedback` |
+
+| Side       | Names                                                                     |
+| ---------- | ------------------------------------------------------------------------- |
+| **Seller** | `shopify.eth` → `agent` → `lindt` / UCP slugs → optional `commission…`    |
+| **Buyer**  | `dheeraj.eth` → `agent` → `intent` · `guardrail` · `payment` · `feedback` |
+
 
 Ops (Sepolia live writes):
 
@@ -109,6 +159,8 @@ Ops (Sepolia live writes):
 npm run ens:deploy
 npm run ens:live
 ```
+
+
 
 ## AgentKit
 
@@ -143,3 +195,4 @@ See [docs/agentkit.md](docs/agentkit.md).
   - [ENS Explorer](https://hackathon-deployment-portal-app.ens-cf.workers.dev/)
   - [ENS App](https://hackathon-deployment-manager-app-v4.ens-cf.workers.dev/)
 - [ENSIP-25](https://docs.ens.domains/ensip/25/) · [ENSIP-26](https://docs.ens.domains/ensip/26/)
+

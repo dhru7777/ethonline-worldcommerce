@@ -127,6 +127,19 @@ function parentEnsFor(name) {
   return ensNames.root || "shopify.eth";
 }
 
+const ENS_EXPLORER = "https://hackathon-deployment-portal-app.ens-cf.workers.dev";
+const ENS_BUYER_ADDR = "0xCD643061B9a5D96AD8595B252fE098EA33a39D91";
+
+function ensExplorerNameUrl(name) {
+  return `${ENS_EXPLORER}/${encodeURIComponent(String(name || ""))}`;
+}
+function ensExplorerRecordsUrl(name) {
+  return `${ensExplorerNameUrl(name)}/records`;
+}
+function ensExplorerAddrNamesUrl(addr) {
+  return `${ENS_EXPLORER}/addr/${addr}/names`;
+}
+
 /** ENS chip + ⓘ that reveals the bound address on hover / click. */
 function ensChip(name, opts = {}) {
   if (!name) return "—";
@@ -136,12 +149,13 @@ function ensChip(name, opts = {}) {
   const lines = [name, parent ? `parent · ${parent}` : "", ...extra.filter(Boolean), address ? `addr · ${address}` : ""]
     .filter(Boolean);
   const tip = lines.join("\n");
+  const nameHref = ensExplorerNameUrl(name);
   const info = address
     ? `<button type="button" class="ens-i" aria-label="Show address for ${esc(name)}" title="${esc(address)}" data-addr="${esc(address)}">i</button>
-       <span class="ens-addr-tip" role="tooltip"><span class="ens-addr-label">address</span><code>${esc(address)}</code></span>`
+       <span class="ens-addr-tip" role="tooltip"><span class="ens-addr-label">address</span><code><a href="${esc(ensExplorerAddrNamesUrl(address))}" target="_blank" rel="noopener">${esc(address)}</a></code></span>`
     : "";
   return `<span class="ens-wrap" tabindex="0" title="${esc(tip)}" data-ens="${esc(name)}" data-addr="${esc(address)}">
-    <span class="ens-chip">${esc(name)}</span>${info}
+    <a class="ens-chip" href="${esc(nameHref)}" target="_blank" rel="noopener">${esc(name)}</a>${info}
   </span>`;
 }
 
@@ -234,10 +248,19 @@ function addBubble(feed, { side, label, html, sys = false }) {
   const hint = feed.querySelector(".empty-hint");
   if (hint) hint.remove();
   const wrap = document.createElement("div");
-  wrap.className = `bwrap ${side === "out" ? "sent" : side === "mid" ? "mid" : "recv"}`;
+  const align =
+    side === "out" || side === "human" ? "sent" : side === "mid" ? "mid" : "recv";
+  const bubbleClass = sys
+    ? "sys"
+    : side === "out"
+      ? "out"
+      : side === "human"
+        ? "human"
+        : "inc";
+  wrap.className = `bwrap ${align}`;
   wrap.innerHTML = `
     ${label ? `<div class="blabel">${esc(label)}</div>` : ""}
-    <div class="bubble ${sys ? "sys" : side === "out" ? "out" : "inc"}">${html}</div>
+    <div class="bubble ${bubbleClass}">${html}</div>
   `;
   feed.appendChild(wrap);
   wireEnsInfoClicks(wrap);
@@ -292,6 +315,8 @@ function buildProfilePanel(tabId, data) {
 
   if (tabId === "identity") {
     return [
+      profileKv("Name", data.displayName || data.name || "—"),
+      profileKv("ENS", data.ensName || "—"),
       profileKv("Agent ID", `#${id.agentId ?? data.agentId}`),
       profileKv("Chain", id.chainLabel || data.chainLabel),
       profileKv("Global ID", id.globalId || data.globalId),
@@ -342,7 +367,7 @@ function renderProfilePop(role, data, errMsg) {
   const pop = $(`${role}Popover`);
   if (!pop) return;
   if (errMsg) {
-    pop.innerHTML = `<div class="pop-title">ERC-8004 · ${esc(role)} agent</div><div class="wallet-err">${esc(errMsg)}</div>`;
+    pop.innerHTML = `<div class="pop-title">ERC-8004 · ${esc(role === "buyer" ? "Buyer Agent" : "Shopify Agent")}</div><div class="wallet-err">${esc(errMsg)}</div>`;
     return;
   }
   const active = profileTab[role] || "identity";
@@ -360,8 +385,9 @@ function renderProfilePop(role, data, errMsg) {
       : "";
 
   pop.innerHTML = `
-    <div class="pop-title">ERC-8004 · ${esc(role)} agent</div>
-    <div class="pop-agent-name">${esc(data.name || "—")}</div>
+    <div class="pop-title">ERC-8004 · ${esc(role === "buyer" ? "Buyer Agent" : "Shopify Agent")}</div>
+    <div class="pop-agent-name">${esc(data.displayName || data.name || (role === "buyer" ? "Buyer Agent" : "Shopify Agent"))}</div>
+    <div class="pop-agent-ens">${esc(data.ensName || (role === "buyer" ? ensNames.buyer : ensNames.shopifyAgent))}</div>
     <div class="wallet-tab-bar profile-tab-bar">${tabBar}</div>
     ${panels}
     ${warn}
@@ -547,13 +573,15 @@ async function showGuardrailsAndApproval(offers, parsed) {
     html: `Agent pick: <b>${esc(pick.title)}</b><br/>Price $${esc(price)} · NHC $${esc(nhc)}<br/>${ensChip(pickEns, ["merchant leaf under shopify.eth"])}`,
   });
 
-  // Human approval on the right (HITL)
+  // Human approval (HITL) — light bubble, not solid black
   const wrap = addBubble($("feedBuyer"), {
-    side: "out",
+    side: "human",
     label: "human",
-    html: `Approve <b>${esc(pick.title)}</b> for $${esc(price)}?
-      ${!ak.isHumanBacked ? `<div class="wallet-muted" style="margin-top:6px">Note: commission held until human-backed</div>` : ""}
-      <div class="approve-row">
+    html: `<div class="approve-copy">Approve <b>${esc(pick.title)}</b> for $${esc(price)}?</div>${
+      !ak.isHumanBacked
+        ? `<div class="wallet-muted" style="margin-top:6px">Note: commission held until human-backed</div>`
+        : ""
+    }<div class="approve-row">
         <button type="button" class="approve-btn" data-decision="approve">Approve</button>
         <button type="button" class="approve-btn reject" data-decision="reject">Reject</button>
       </div>`,
@@ -768,24 +796,57 @@ async function showGuardrailsAndApproval(offers, parsed) {
         const starsEl = ratingWrap.querySelector("#ratingStars");
         const valEl = ratingWrap.querySelector("#ratingVal");
         let rated = false;
-        const finishRate = (v) => {
+        const finishRate = async (v) => {
           if (rated) return;
           rated = true;
           starsEl.querySelectorAll(".star").forEach((s) =>
             s.classList.toggle("on", Number(s.dataset.v) <= v),
           );
-          valEl.textContent = `${v}/5 · ${v * 20}/100`;
-          addBubble($("feedBuyer"), {
-            side: "inc",
-            label: buyerLabel(),
-            html: `Reputation noted · ${esc(String(v))}/5 (demo log · on-chain feedback next)`,
-          });
-          addBubble($("feedSeller"), {
-            side: "inc",
-            label: shopifyLabel(),
-            html: `Feedback · ${esc(String(v))}/5 on ${ensChip(merchantEns)}`,
-            sys: true,
-          });
+          valEl.textContent = `${v}/5 · writing ERC-8004…`;
+          try {
+            const fbRes = await fetch("/api/feedback", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                stars: v,
+                title: s.title,
+                ensName: merchantEns,
+                agentId: identities?.seller?.agentId,
+              }),
+              signal: AbortSignal.timeout(180000),
+            });
+            const fbData = await fbRes.json();
+            if (!fbRes.ok) throw new Error(fbData.error || "Feedback failed");
+            const fb = fbData.feedback;
+            valEl.innerHTML = `${v}/5 · on-chain ✓`;
+            const txLink = fb.explorer
+              ? `<a href="${esc(fb.explorer)}" target="_blank" rel="noopener">${esc(shortHash(fb.hash))}</a>`
+              : "";
+            const scanLink = fb.scanUrl
+              ? `<a href="${esc(fb.scanUrl)}" target="_blank" rel="noopener">8004scan ↗</a>`
+              : "";
+            addBubble($("feedBuyer"), {
+              side: "inc",
+              label: buyerLabel(),
+              html: `ERC-8004 feedback · <b>${esc(String(v))}/5</b> → Shopify Agent #${esc(String(fb.agentId))}<br/>${txLink}${scanLink ? ` · ${scanLink}` : ""}`,
+            });
+            addBubble($("feedSeller"), {
+              side: "inc",
+              label: shopifyLabel(),
+              html: `Reputation received · ${esc(String(v))}/5 on-chain · ${ensChip(ensNames.shopifyAgent)}${txLink ? `<br/>${txLink}` : ""}`,
+              sys: true,
+            });
+            profileTab.seller = "feedback";
+            profileCache.seller = null;
+            await loadProfile("seller");
+          } catch (err) {
+            valEl.textContent = `${v}/5 · failed`;
+            addBubble($("feedBuyer"), {
+              side: "inc",
+              label: buyerLabel(),
+              html: `ERC-8004 feedback failed: ${esc(err.message || err)}`,
+            });
+          }
         };
         starsEl.addEventListener("mouseover", (ev) => {
           if (rated) return;
@@ -801,7 +862,7 @@ async function showGuardrailsAndApproval(offers, parsed) {
         });
         starsEl.addEventListener("click", (ev) => {
           const v = Number(ev.target.dataset.v);
-          if (!v) return;
+          if (!v || rated) return;
           finishRate(v);
         });
       } catch (err) {
@@ -836,7 +897,6 @@ async function boot() {
   if (ms.m2) registerEnsAddr("cocoa-house.agent.shopify.eth", ms.m2);
   if (ms.m3) registerEnsAddr("sweet-factory.agent.shopify.eth", ms.m3);
 
-  $("status").textContent = `${ensNames.root} · ${health.ens.writeMode}`;
   $("buyerSub").innerHTML = ensChip(ensNames.buyer, {
     extra: [`parent · ${ensNames.buyerRegistry}`, "Buyer Agent"],
   });
@@ -852,7 +912,7 @@ async function boot() {
 function renderEnsNode(node, depth = 0) {
   const kids = node.children || [];
   const hasKids = kids.length > 0;
-  const openDefault = depth < 2;
+  const openDefault = false;
   const can = (node.perms?.can || [])
     .slice(0, 4)
     .map((k) => `<span class="ens-pill can">${esc(k)}</span>`)
@@ -861,8 +921,15 @@ function renderEnsNode(node, depth = 0) {
     .slice(0, 3)
     .map((k) => `<span class="ens-pill deny">${esc(k)}</span>`)
     .join("");
-  const link = node.explorerUrl
-    ? `<a href="${esc(node.explorerUrl)}" target="_blank" rel="noopener">explorer ↗</a>`
+  const linkBits = [];
+  if (node.explorerUrl) {
+    linkBits.push(`<a href="${esc(node.explorerUrl)}" target="_blank" rel="noopener">name ↗</a>`);
+  }
+  if (node.recordsUrl) {
+    linkBits.push(`<a href="${esc(node.recordsUrl)}" target="_blank" rel="noopener">records ↗</a>`);
+  }
+  const link = linkBits.length
+    ? `<div class="ens-tdetail-links">${linkBits.join(" · ")}</div>`
     : "";
   const childHtml = hasKids
     ? `<ul class="ens-tline">${kids.map((c) => renderEnsNode(c, depth + 1)).join("")}</ul>`
@@ -924,14 +991,19 @@ async function openEnsTree() {
     `;
     const note = $("ensTreeNote");
     if (note) {
-      note.innerHTML = `On-chain subnames are live under our UserRegistry. The hackathon explorer may still show <b>0 subnames</b> because it indexes official PermissionedRegistry / ERC-1155 events — not our custom <code>LabelRegistered</code>. Verify via
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth" target="_blank" rel="noopener">shopify.eth</a>
-        ·
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth" target="_blank" rel="noopener">dheeraj.eth</a>
-        (subregistry linked). After explorer-compatible redeploy, try
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth" target="_blank" rel="noopener">agent.dheeraj.eth</a>
-        ·
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth" target="_blank" rel="noopener">intent.agent.dheeraj.eth</a>.`;
+      const L = forest.links || {
+        shopify: ensExplorerNameUrl("shopify.eth"),
+        shopifyRecords: ensExplorerRecordsUrl("shopify.eth"),
+        dheeraj: ensExplorerNameUrl("dheeraj.eth"),
+        dheerajRecords: ensExplorerRecordsUrl("dheeraj.eth"),
+        buyerNames: ensExplorerAddrNamesUrl(ENS_BUYER_ADDR),
+      };
+      note.innerHTML = `Explorer ·
+        <a href="${esc(L.shopify)}" target="_blank" rel="noopener">shopify.eth</a>
+        · <a href="${esc(L.shopifyRecords)}" target="_blank" rel="noopener">records</a>
+        · <a href="${esc(L.dheeraj)}" target="_blank" rel="noopener">dheeraj.eth</a>
+        · <a href="${esc(L.dheerajRecords)}" target="_blank" rel="noopener">records</a>
+        · <a href="${esc(L.buyerNames)}" target="_blank" rel="noopener">wallet names</a>`;
     }
     renderEnsCol($("ensTreeBuyer"), "Buyer", forest.buyer);
     renderEnsCol($("ensTreeSeller"), "Seller", forest.seller);
@@ -1086,5 +1158,5 @@ wirePopover("sellerWalletWrap", "sellerWalletBtn", () => {
 });
 
 boot().catch((err) => {
-  $("status").textContent = String(err);
+  console.error(err);
 });

@@ -135,6 +135,8 @@ See [docs/agentkit.md](docs/agentkit.md).
 
 - [Architecture](docs/architecture.md)
 - [AgentKit](docs/agentkit.md)
+- [World product feedback](docs/world-product-feedback.md) (AgentKit / AgentBook / World ID)
+- [ENS product feedback](docs/ens-product-feedback.md) (ENSv2 Sepolia App / HCA / nested registries)
 - **ETHOnline ENSv2 Sepolia (not production ENS docs):**
   - [Deployments](https://feature-permres-inode-refact.docs-bao.pages.dev/learn/deployments#sepolia-ensv2-beta)
   - [ENSv2 overview](https://feature-permres-inode-refact.docs-bao.pages.dev/ensv2/overview)

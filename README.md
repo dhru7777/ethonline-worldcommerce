@@ -3,8 +3,7 @@
 ENSv2 agent namespaces for Shopify UCP commerce — buyer roles under `dheeraj.eth`, merchant agents under `shopify.eth`, ERC-8004 identity, Sepolia MockUSDC settlement, and World AgentKit human-backing.
 
 **Live demo:** [https://worldcommerce-production.up.railway.app](https://worldcommerce-production.up.railway.app)  
-  
-
+**Presentation:** [View the worldCommerce presentation](https://canva.link/e4y3bs07jpn2opb)
 
 ## Final Submission
 

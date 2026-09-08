@@ -17,6 +17,7 @@ ENSv2 agent namespaces for Shopify UCP commerce — buyer roles under `dheeraj.e
 | **Buyer agent**      | ERC-8004 `#9638` · `agent.dheeraj.eth`                                                  |
 | **Seller / Shopify** | ERC-8004 `#6832` · `agent.shopify.eth`                                                  |
 | **Repo**             | [dhru7777/ethonline-worldcommerce](https://github.com/dhru7777/ethonline-worldcommerce) |
+| **Presentation**     | [View presentation](https://canva.link/e4y3bs07jpn2opb)                                |
 
 
 ## Product Rule

@@ -4,7 +4,7 @@ Shopping agents today are hex wallets: no name, no scoped permissions, and no pr
 
 worldCommerce is agentic Shopify UCP commerce where the agent works for the human. Buyer roles live under `dheeraj.eth`, merchants under `shopify.eth` (ENSv2 + EAC). ERC-8004 is who the agents are. World AgentKit decides whether they are human-backed before commission releases. Sepolia MockUSDC settles only after the human approves.
 
-**Live demo:** [https://worldcommerce-production.up.railway.app](https://worldcommerce-production.up.railway.app)  
+**Live demo:** [https://worldcommerce-production.up.railway.app](https://worldcommerce-production.up.railway.app)
 
 ## Final Submission
 
@@ -22,39 +22,58 @@ worldCommerce is agentic Shopify UCP commerce where the agent works for the huma
 | **Presentation**     | [View presentation](https://canva.link/e4y3bs07jpn2opb)                                |
 
 
+
+
 ## On-chain links
 
 Explorer: [ETHOnline ENSv2 Sepolia](https://hackathon-deployment-portal-app.ens-cf.workers.dev/). Nested `UserRegistry` contracts show as **Subregistry** on each name; **Subnames** lists children under that registry.
 
 ### ERC-8004
 
-| Agent | Chain | 8004scan |
-| ----- | ----- | -------- |
-| Buyer `#9638` | Ethereum Sepolia | [testnet.8004scan.io/agents/sepolia/9638](https://testnet.8004scan.io/agents/sepolia/9638) |
+
+| Agent          | Chain                   | 8004scan                                                                                                                       |
+| -------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Buyer `#9638`  | Ethereum Sepolia        | [testnet.8004scan.io/agents/sepolia/9638](https://testnet.8004scan.io/agents/sepolia/9638)                                     |
 | Seller `#6832` | Base Sepolia · services | [testnet.8004scan.io/agents/base-sepolia/6832?tab=services](https://testnet.8004scan.io/agents/base-sepolia/6832?tab=services) |
+
+
+### AgentBook (World Chain)
+
+Buyer wallet `0xCD6430…9D91` is Orb-registered on AgentBook. Live `lookupHuman` returns human `0x2493…7ff4`.
+
+| Piece | Link |
+| ----- | ---- |
+| Register tx | [worldscan.org/tx/0x25e4710c…b1e4](https://worldscan.org/tx/0x25e4710cc1432567536c3a72e35a1aac53a421a1689a7abbc449ce0c271bb1e4) |
+| AgentBook | [`0xA23aB2712eA7BBa896930544C7d6636a96b944dA`](https://worldscan.org/address/0xA23aB2712eA7BBa896930544C7d6636a96b944dA) |
+
+
+
 
 ### Buyer tree — `dheeraj.eth`
 
-| Name | Explorer | Subnames | Subregistry |
-| ---- | -------- | -------- | ----------- |
-| `dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth/subnames) | [`0xC22c…9358`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0xC22c46275CaAb58A9b1f1ffF6C30B7231c959358) |
-| `agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth/subnames) | [`0x20e7…05fb`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0x20e7fC9bdD809095c6C3958D6Ee084957F7A05fb) |
-| `intent.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth/subnames) | — |
-| `guardrail.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/guardrail.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/guardrail.agent.dheeraj.eth/subnames) | — |
-| `payment.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/payment.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/payment.agent.dheeraj.eth/subnames) | — |
-| `feedback.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/feedback.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/feedback.agent.dheeraj.eth/subnames) | — |
+
+| Name                          | Explorer                                                                                                                                                                               | Subnames                                                                                                    | Subregistry                                                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `dheeraj.eth`                 | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth/records)             | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth/subnames)                 | [`0xC22c…9358`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0xC22c46275CaAb58A9b1f1ffF6C30B7231c959358) |
+| `agent.dheeraj.eth`           | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth/subnames)           | [`0x20e7…05fb`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0x20e7fC9bdD809095c6C3958D6Ee084957F7A05fb) |
+| `intent.agent.dheeraj.eth`    | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth)                                                                                            | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth/subnames)    | —                                                                                                                               |
+| `guardrail.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/guardrail.agent.dheeraj.eth)                                                                                         | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/guardrail.agent.dheeraj.eth/subnames) | —                                                                                                                               |
+| `payment.agent.dheeraj.eth`   | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/payment.agent.dheeraj.eth)                                                                                           | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/payment.agent.dheeraj.eth/subnames)   | —                                                                                                                               |
+| `feedback.agent.dheeraj.eth`  | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/feedback.agent.dheeraj.eth)                                                                                          | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/feedback.agent.dheeraj.eth/subnames)  | —                                                                                                                               |
+
 
 Buyer wallet names: [`0xCD64…9D91`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/addr/0xCD643061B9a5D96AD8595B252fE098EA33a39D91/names)
 
 ### Seller tree — `shopify.eth`
 
-| Name | Explorer | Subnames | Subregistry |
-| ---- | -------- | -------- | ----------- |
-| `shopify.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth/subnames) | [`0x76fE…0B54`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0x76fE166152b3CbcF62bECBEC5087DfE8C3b00B54) |
+
+| Name                | Explorer                                                                                                                                                                               | Subnames                                                                                          | Subregistry                                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `shopify.eth`       | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth/records)             | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth/subnames)       | [`0x76fE…0B54`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0x76fE166152b3CbcF62bECBEC5087DfE8C3b00B54) |
 | `agent.shopify.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth/subnames) | [`0xE9A9…1B5b`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0xE9A977275D5af1d30cC84EfC8b96Ce80Fd0f1B5b) |
 
-Merchant leaves (`lindt.agent.shopify.eth`, UCP slugs, `commission.{slug}.agent.shopify.eth`) are minted under the `agent.shopify.eth` subregistry from this search’s hits — open **Subnames** on `agent.shopify.eth`.
 
+Merchant leaves (`lindt.agent.shopify.eth`, UCP slugs, `commission.{slug}.agent.shopify.eth`) are minted under the `agent.shopify.eth` subregistry from this search’s hits — open **Subnames** on `agent.shopify.eth`.
 
 ## Product Rule
 
@@ -157,12 +176,12 @@ Without ENSv2, merchant labels and the permission demo do not resolve.
 ### What Worldcoin owns
 
 
-| Piece                             | Role                                                        |
-| --------------------------------- | ----------------------------------------------------------- |
-| World ID RP (`WORLD_ID_*`)        | Cloud verify action `human-backed-agent`                    |
-| AgentBook (`@worldcoin/agentkit`) | `lookupHuman(buyerWallet)` on World Chain                   |
-| `verifyAgentHumanBacked`          | Gate used before capacity / payout                          |
-| `AGENTKIT_ASSUME_HUMAN_BACKED`    | Labeled demo mock when live AgentBook lookup is empty       |
+| Piece                             | Role                                                  |
+| --------------------------------- | ----------------------------------------------------- |
+| World ID RP (`WORLD_ID_*`)        | Cloud verify action `human-backed-agent`              |
+| AgentBook (`@worldcoin/agentkit`) | `lookupHuman(buyerWallet)` on World Chain · [register tx](https://worldscan.org/tx/0x25e4710cc1432567536c3a72e35a1aac53a421a1689a7abbc449ce0c271bb1e4) |
+| `verifyAgentHumanBacked`          | Gate used before capacity / payout                    |
+| `AGENTKIT_ASSUME_HUMAN_BACKED`    | Labeled demo mock when live AgentBook lookup is empty |
 
 
 ENS answers **naming + permissions**. Worldcoin answers **human continuity** for the buyer agent. ERC-8004 is separate identity/reputation on Sepolia.
@@ -200,6 +219,8 @@ npm run ens:live
 
 ## AgentKit
 
+**AgentBook register (World Chain):** [worldscan.org/tx/0x25e4710c…b1e4](https://worldscan.org/tx/0x25e4710cc1432567536c3a72e35a1aac53a421a1689a7abbc449ce0c271bb1e4)
+
 ```bash
 npm run agentkit:prereq
 npm run agentkit:status
@@ -214,9 +235,11 @@ AgentKit in this demo:
 1. **AgentBook lookup** on commission (`POST /api/settle`) — human-backed → release bid; else hold.
 2. **Steps 3–5** on merchant-bid catalog — `createAgentkitClient` + `createAgentkitHooks` + `InMemoryAgentKitStorage` `free-trial` (3) on `GET /api/agentkit/data`. Unregistered / exhausted → HTTP 402. This is World’s x402 access path. Commission is still the commerce incentive.
 
+
+
 ### Why the demo mocks human-backed
 
-World’s AgentBook (`0xA23aB2712eA7BBa896930544C7d6636a96b944dA` on World Chain) only **writes** after a production **Orb** proof. World ID Sandbox cannot register `0xCD6430…`. There is no sandbox AgentBook contract that accepts Sandbox proofs.
+World’s AgentBook ([`0xA23aB2712eA7BBa896930544C7d6636a96b944dA`](https://worldscan.org/address/0xA23aB2712eA7BBa896930544C7d6636a96b944dA) on World Chain) only **writes** after a production **Orb** proof. That write is [this register tx](https://worldscan.org/tx/0x25e4710cc1432567536c3a72e35a1aac53a421a1689a7abbc449ce0c271bb1e4). World ID Sandbox cannot register `0xCD6430…`. There is no sandbox AgentBook contract that accepts Sandbox proofs.
 
 We still **use** AgentBook here:
 
@@ -228,10 +251,12 @@ That is the product we considered for this settle path: a human-backed buyer age
 
 The header chip **AgentBook mock** and the worldAgent bubble say this out loud. Judges are not meant to think Orb succeeded.
 
-| Flag | Demo shows |
-| --- | --- |
+
+| Flag                                          | Demo shows                                               |
+| --------------------------------------------- | -------------------------------------------------------- |
 | `AGENTKIT_ASSUME_HUMAN_BACKED=true` (default) | Live lookup + mock human-backed + commission **release** |
-| `AGENTKIT_ASSUME_HUMAN_BACKED=false` | Live lookup miss + commission **hold** |
+| `AGENTKIT_ASSUME_HUMAN_BACKED=false`          | Live lookup miss + commission **hold**                   |
+
 
 Selfie on Approve is a separate HITL check. World ID Sandbox Selfie Check is failing in TestFlight, so the demo mocks it (`WORLD_ID_MOCK_SELFIE=true`, header chip **Selfie mock**). Set `false` to try the real QR. It does not write AgentBook.
 

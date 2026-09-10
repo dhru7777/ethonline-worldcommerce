@@ -1,6 +1,6 @@
 # worldCommerce
 
-Shopping agents today are hex wallets: no name, no scoped permissions, and no proof they spend for a real person. Merchants will pay a commission to get chosen — without a unique-human check that payout is bounty farming. Catalog hits have no on-chain identity unless you hard-code brands.
+Shopping agents today are hex wallets: no name, no scoped permissions, and no proof they spend for a real person. Merchants will pay a commission to get chosen without a unique-human check that payout is bounty farming. Catalog hits have no on-chain identity unless you hard-code brands.
 
 worldCommerce is agentic Shopify UCP commerce where the agent works for the human. Buyer roles live under `dheeraj.eth`, merchants under `shopify.eth` (ENSv2 + EAC). ERC-8004 is who the agents are. World AgentKit decides whether they are human-backed before commission releases. Sepolia MockUSDC settles only after the human approves.
 

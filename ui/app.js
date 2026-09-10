@@ -1116,7 +1116,7 @@ function placeTourTip(target) {
     spot.style.width = `${Math.min(vw - 8, r.width + pad * 2)}px`;
     spot.style.height = `${Math.min(vh - 8, r.height + pad * 2)}px`;
     target.classList.add("tour-pulse");
-    const tipW = Math.min(320, vw - 24);
+    const tipW = Math.min(400, vw - 24);
     let left = Math.min(vw - tipW - 12, Math.max(12, r.left));
     let top = r.bottom + 14;
     if (top + 200 > vh) top = Math.max(12, r.top - 200);
@@ -1124,7 +1124,7 @@ function placeTourTip(target) {
     tip.style.top = `${top}px`;
   } else {
     spot.style.opacity = "0";
-    tip.style.left = `${Math.max(12, (vw - 320) / 2)}px`;
+    tip.style.left = `${Math.max(12, (vw - 400) / 2)}px`;
     tip.style.top = `${Math.max(24, vh * 0.22)}px`;
   }
 }

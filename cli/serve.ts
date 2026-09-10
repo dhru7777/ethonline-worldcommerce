@@ -13,8 +13,18 @@ import { buildEnsForest } from "../src/ens/treeModel.js";
 import { discoverProducts, parseSimpleIntent, type ParsedIntent } from "../src/ucp/discover.js";
 import { captureTurn } from "../src/intent/capture.js";
 import { verifyAgentHumanBacked } from "../src/agentkit/verify.js";
+import {
+  agentkitResourceHealth,
+  handleProtectedData,
+  probeBuyerAgentAccess,
+} from "../src/agentkit/resource.js";
 import { merchantPayToForOffer, settlePurchase } from "../src/payments/settle.js";
 import { submitPurchaseFeedback } from "../src/identity/feedback.js";
+import {
+  signWorldIdRequest,
+  verifyWorldIdProof,
+  worldIdPublicConfig,
+} from "../src/worldid/sandbox.js";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -24,6 +34,7 @@ const MIME: Record<string, string> = {
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
+  ".wasm": "application/wasm",
 };
 
 async function readJson(req: import("node:http").IncomingMessage) {
@@ -50,7 +61,7 @@ function send(
   const headers: Record<string, string> = {
     "Content-Type": type,
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, agentkit",
   };
   // Keep Railway/demo UI from serving a stale HTML/CSS/JS shell after deploys.
   if (
@@ -72,7 +83,7 @@ const server = createServer(async (req, res) => {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, agentkit",
     });
     res.end();
     return;
@@ -110,7 +121,12 @@ const server = createServer(async (req, res) => {
         },
         agentkit: {
           assumeHumanBacked: config.agentkit.assumeHumanBacked,
+          mockHumanBacked: config.agentkit.assumeHumanBacked,
+          mockNote:
+            "Live AgentBook lookup still runs. If unregistered, demo mocks human-backed so commission can release.",
+          resource: agentkitResourceHealth(),
         },
+        worldId: worldIdPublicConfig(),
       });
       return;
     }
@@ -136,6 +152,58 @@ const server = createServer(async (req, res) => {
 
     if (path === "/api/agentkit/verify" && req.method === "GET") {
       send(res, 200, await verifyAgentHumanBacked(url.searchParams.get("wallet")));
+      return;
+    }
+
+    if (path === "/api/agentkit/data" && req.method === "GET") {
+      const out = await handleProtectedData(req);
+      send(res, out.status, out.body);
+      return;
+    }
+
+    if (path === "/api/agentkit/access" && req.method === "GET") {
+      send(res, 200, await probeBuyerAgentAccess(req));
+      return;
+    }
+
+    if (path === "/api/worldid/config" && req.method === "GET") {
+      send(res, 200, worldIdPublicConfig());
+      return;
+    }
+
+    if (path === "/api/worldid/rp-signature" && req.method === "POST") {
+      const body = (await readJson(req)) as { action?: string };
+      try {
+        send(res, 200, signWorldIdRequest(body.action));
+      } catch (err) {
+        send(res, 503, { error: err instanceof Error ? err.message : String(err) });
+      }
+      return;
+    }
+
+    if (path === "/api/worldid/verify" && req.method === "POST") {
+      const body = (await readJson(req)) as { idkitResponse?: unknown };
+      if (!body.idkitResponse) {
+        send(res, 400, { error: "idkitResponse required" });
+        return;
+      }
+      try {
+        const out = await verifyWorldIdProof(body.idkitResponse);
+        send(res, out.ok ? 200 : out.status || 400, out);
+      } catch (err) {
+        send(res, 500, { error: err instanceof Error ? err.message : String(err) });
+      }
+      return;
+    }
+
+    if (path === "/vendor/idkit.global.js" || path === "/vendor/idkit_wasm_bg.wasm") {
+      const vendor = join(ROOT, "node_modules/@worldcoin/idkit-core/dist", path.split("/").pop()!);
+      if (!existsSync(vendor)) {
+        send(res, 404, { error: "idkit vendor missing" });
+        return;
+      }
+      const ext = extname(vendor);
+      send(res, 200, readFileSync(vendor), MIME[ext] || "application/octet-stream");
       return;
     }
 

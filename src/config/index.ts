@@ -91,9 +91,24 @@ export const config = {
     forceAssume: env("AGENTKIT_FORCE_ASSUME", "false").toLowerCase() === "true",
     rpcUrl: env("WORLD_AGENTKIT_RPC"),
     capacityTier: env("AGENTKIT_CAPACITY_TIER", "$250"),
+    /** World Step 5: free-trial uses before x402 402 fallback. */
+    freeTrialUses: envInt("AGENTKIT_FREE_TRIAL_USES", 3),
+    /** CAIP-2 chain the buyer agent signs SIWE on (lookup still World Chain). */
+    signerChainId: env("AGENTKIT_SIGNER_CHAIN_ID", "eip155:11155111"),
+    x402PayTo: env("AGENTKIT_X402_PAY_TO", env("SHOPIFY_WALLET_ADDRESS", env("SELLER_PAYTO_ADDRESS"))),
+    x402FacilitatorUrl: env(
+      "AGENTKIT_X402_FACILITATOR_URL",
+      "https://x402-worldchain.vercel.app/facilitator",
+    ),
+    worldUsdc: env(
+      "AGENTKIT_WORLD_USDC",
+      "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1",
+    ),
+    /** Labeled mock human id when AgentBook lookup is empty (not an on-chain write). */
+    mockHumanId: env("AGENTKIT_MOCK_HUMAN_ID"),
   },
   worldId: {
-    appId: env("WORLD_ID_APP_ID", "app_d7cb9f75b70f64990bb94af141f1ba70"),
+    appId: env("WORLD_ID_APP_ID", "app_9e8641e847eb208a9f5fb9615d1b8b82"),
     rpId: env("WORLD_ID_RP_ID"),
     action: env("WORLD_ID_ACTION", "human-backed-agent"),
     signerAddress: env("WORLD_ID_SIGNER_ADDRESS"),
@@ -101,6 +116,15 @@ export const config = {
     privateKey: env("WORLD_ID_PRIVATE_KEY"),
     verifyEndpoint: env("WORLD_ID_VERIFY_ENDPOINT"),
     statusEndpoint: env("WORLD_ID_STATUS_ENDPOINT"),
+    /** IDKit environment: sandbox opens World ID (Sandbox) TestFlight. */
+    environment: (env("WORLD_ID_ENVIRONMENT", "sandbox") || "sandbox") as
+      | "sandbox"
+      | "production"
+      | "staging",
+    /** Skip TestFlight selfie (Sandbox camera is failing). Labeled mock on Approve. */
+    mockSelfie: env("WORLD_ID_MOCK_SELFIE", "true").toLowerCase() !== "false",
+    /** World App / Sandbox username to show on the labeled mock (not AgentBook). */
+    username: env("WORLD_ID_USERNAME"),
   },
   explorers: {
     sepolia: env("EXPLORER_SEPOLIA_URL", "https://sepolia.etherscan.io"),

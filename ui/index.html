@@ -54,7 +54,7 @@
         </div>
       </div>
       <div class="feed" id="feedBuyer">
-        <div class="empty-hint">Type in the bar below to talk with the buyer agent. Search Shopify — merchant ENS names are created from the results.</div>
+        <div class="empty-hint">Type below to talk with the buyer agent. Search Shopify to see merchant offers.</div>
       </div>
     </section>
 
@@ -86,10 +86,33 @@
     </section>
   </main>
 
-  <button type="button" class="ens-tree-fab" id="ensTreeBtn" aria-label="ENS Tree" title="ENS namespace tree">
-    <img class="ens-tree-fab-logo" src="/assets/ens-logo.png" alt="" width="22" height="22" onerror="this.style.display='none'" />
-    <span class="ens-tree-fab-label">ENS Tree</span>
+  <div class="fab-row" id="fabRow">
+    <button type="button" class="ens-tree-fab" id="ensTreeBtn" aria-label="ENS Tree" title="ENS namespace tree">
+      <img class="ens-tree-fab-logo" src="/assets/ens-logo.png" alt="" width="22" height="22" onerror="this.style.display='none'" />
+      <span class="ens-tree-fab-label">ENS Tree</span>
+    </button>
+    <button type="button" class="tutorial-fab" id="tutorialBtn" aria-label="Tutorial" title="Walk through the demo">
+      Tutorial
+    </button>
+  </div>
+
+  <button type="button" class="world-fab" id="worldFab" aria-label="World" title="World human backing">
+    <img class="world-fab-logo" src="/assets/worldcoin-logo.png" alt="" width="28" height="28" />
   </button>
+
+  <div class="tour-root" id="tourRoot" hidden>
+    <div class="tour-veil" id="tourVeil" aria-hidden="true"></div>
+    <div class="tour-spotlight" id="tourSpot" aria-hidden="true"></div>
+    <div class="tour-tip" id="tourTip" role="dialog" aria-live="polite">
+      <div class="tour-step" id="tourStep">1 / 12</div>
+      <div class="tour-title" id="tourTitle">Tutorial</div>
+      <div class="tour-body" id="tourBody"></div>
+      <div class="tour-actions">
+        <button type="button" class="tour-skip" id="tourSkip">Skip</button>
+        <button type="button" class="approve-btn" id="tourNext">Next</button>
+      </div>
+    </div>
+  </div>
 
   <div class="ens-tree-overlay" id="ensTreeOverlay" hidden>
     <div class="ens-tree-sheet" role="dialog" aria-labelledby="ensTreeTitle">
@@ -119,6 +142,51 @@
     </div>
   </div>
 
+  <div class="sandbox-overlay" id="worldPanelOverlay" hidden>
+    <div class="sandbox-sheet world-panel-sheet" role="dialog" aria-labelledby="worldPanelTitle">
+      <div class="sandbox-sheet-head">
+        <div class="world-panel-brand">
+          <img src="/assets/worldcoin-logo.png" alt="" width="28" height="28" />
+          <div>
+            <div class="sandbox-title" id="worldPanelTitle">World</div>
+            <div class="sandbox-sub">Human backing for the buyer agent</div>
+          </div>
+        </div>
+        <button type="button" class="ens-tree-close" id="worldPanelClose" aria-label="Close">×</button>
+      </div>
+      <div class="world-tabs" role="tablist">
+        <button type="button" class="world-tab active" data-world-tab="human" role="tab" aria-selected="true">Human verification</button>
+        <button type="button" class="world-tab" data-world-tab="agentbook" role="tab" aria-selected="false">AgentBook live</button>
+      </div>
+      <div class="world-tab-panel" id="worldTabHuman" data-world-panel="human">
+        <p class="sandbox-status" id="sandboxStatus">Ready to verify</p>
+        <img class="sandbox-qr" id="sandboxQr" alt="World ID QR" hidden />
+        <a class="sandbox-link" id="sandboxLink" target="_blank" rel="noopener"></a>
+        <button type="button" class="approve-btn world-verify-btn" id="worldVerifyBtn">Start verification</button>
+      </div>
+      <div class="world-tab-panel" id="worldTabAgentbook" data-world-panel="agentbook" hidden>
+        <p class="sandbox-status ok" id="agentbookProofStatus">World ID verified · agent registered on World Chain</p>
+        <dl class="agentbook-proof-kv">
+          <div><dt>Agent</dt><dd><code id="agentbookProofAgent">0xCD643061B9a5D96AD8595B252fE098EA33a39D91</code></dd></div>
+          <div><dt>Human</dt><dd><code id="agentbookProofHuman">0x249394758bdbf6696accf5c1a7f8721933ce436aef6599100b8e1a76cf427ff4</code></dd></div>
+          <div><dt>Tx</dt><dd><a id="agentbookProofTx" href="https://worldscan.org/tx/0x25e4710cc1432567536c3a72e35a1aac53a421a1689a7abbc449ce0c271bb1e4" target="_blank" rel="noopener">0x25e4710c…b1e4 ↗</a></dd></div>
+        </dl>
+        <details class="agentbook-proof-drop">
+          <summary>1. World ID verified, then AgentBook write</summary>
+          <figure class="agentbook-proof-fig">
+            <img src="/assets/agentbook-world-id-verified.png" alt="CLI: World ID verified and agent registered on World Chain" />
+          </figure>
+        </details>
+        <details class="agentbook-proof-drop">
+          <summary>2. Status: registered</summary>
+          <figure class="agentbook-proof-fig">
+            <img src="/assets/agentbook-cli-status.png" alt="CLI: AgentBook status registered with human id" />
+          </figure>
+        </details>
+      </div>
+    </div>
+  </div>
+
   <footer class="demo-footer">
     <form class="input-bar" id="form">
       <input id="q" placeholder="Find me chocolates under $10" autocomplete="off" />
@@ -126,12 +194,13 @@
     </form>
     <div class="demo-prompts">
       <span>Try:</span>
-      <button type="button" class="prompt-chip" data-q="It's raining I want to go out">It's raining I want to go out</button>
       <button type="button" class="prompt-chip" data-q="What to get for a date night">What to get for a date night</button>
       <button type="button" class="prompt-chip" data-q="Find me chocolates under $10">Find me chocolates under $10</button>
     </div>
   </footer>
 
+  <script src="/vendor/idkit.global.js"></script>
+  <script src="/worldid-sandbox.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

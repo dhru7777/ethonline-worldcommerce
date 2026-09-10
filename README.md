@@ -126,7 +126,7 @@ Without ENSv2, merchant labels and the permission demo do not resolve.
 | World ID RP (`WORLD_ID_*`)        | Cloud verify action `human-backed-agent`                    |
 | AgentBook (`@worldcoin/agentkit`) | `lookupHuman(buyerWallet)` on World Chain                   |
 | `verifyAgentHumanBacked`          | Gate used before capacity / payout                          |
-| `AGENTKIT_ASSUME_HUMAN_BACKED`    | Demo allow path until the wallet is registered in World App |
+| `AGENTKIT_ASSUME_HUMAN_BACKED`    | Labeled demo mock when live AgentBook lookup is empty       |
 
 
 ENS answers **naming + permissions**. Worldcoin answers **human continuity** for the buyer agent. ERC-8004 is separate identity/reputation on Sepolia.
@@ -167,19 +167,50 @@ npm run ens:live
 ```bash
 npm run agentkit:prereq
 npm run agentkit:status
-# after World ID in World App:
+# after World ID in World App (Orb — Sandbox cannot finish this):
 npm run agentkit:register
 ```
 
-See [docs/agentkit.md](docs/agentkit.md).
+See [docs/agentkit.md](docs/agentkit.md) · [Continuity log](docs/world-continuity-implementation-log.md).
+
+AgentKit in this demo:
+
+1. **AgentBook lookup** on commission (`POST /api/settle`) — human-backed → release bid; else hold.
+2. **Steps 3–5** on merchant-bid catalog — `createAgentkitClient` + `createAgentkitHooks` + `InMemoryAgentKitStorage` `free-trial` (3) on `GET /api/agentkit/data`. Unregistered / exhausted → HTTP 402. This is World’s x402 access path. Commission is still the commerce incentive.
+
+### Why the demo mocks human-backed
+
+World’s AgentBook (`0xA23aB2712eA7BBa896930544C7d6636a96b944dA` on World Chain) only **writes** after a production **Orb** proof. World ID Sandbox cannot register `0xCD6430…`. There is no sandbox AgentBook contract that accepts Sandbox proofs.
+
+We still **use** AgentBook here:
+
+1. Every guardrail / settle call runs live `lookupHuman(buyerWallet)`.
+2. That currently returns `null` (unregistered) — the honest on-chain status.
+3. `AGENTKIT_ASSUME_HUMAN_BACKED=true` then overlays a **labeled mock** (`checkedVia: agentbook-mock`) so the UI can show **human-backed → commission release**.
+
+That is the product we considered for this settle path: a human-backed buyer agent gets the merchant bid; a bot does not. Without the mock, every Orb-less demo would only show **hold**, and it would look like we never wired the release side.
+
+The header chip **AgentBook mock** and the worldAgent bubble say this out loud. Judges are not meant to think Orb succeeded.
+
+| Flag | Demo shows |
+| --- | --- |
+| `AGENTKIT_ASSUME_HUMAN_BACKED=true` (default) | Live lookup + mock human-backed + commission **release** |
+| `AGENTKIT_ASSUME_HUMAN_BACKED=false` | Live lookup miss + commission **hold** |
+
+Selfie on Approve is a separate HITL check. World ID Sandbox Selfie Check is failing in TestFlight, so the demo mocks it (`WORLD_ID_MOCK_SELFIE=true`, header chip **Selfie mock**). Set `false` to try the real QR. It does not write AgentBook.
 
 ## API
 
 - `GET /api/health` — ENS mode + identities
 - `GET /api/ens/tree` — buyer × seller forest for the UI panel
 - `GET /api/identities` · `/api/agent/{buyer\|seller}` · `/api/wallet/{buyer\|seller}`
+- `GET /api/agentkit/verify` — AgentBook `lookupHuman` for the buyer wallet
+- `GET /api/agentkit/data` — x402/AgentKit protected catalog (402 without signed `agentkit` header)
+- `GET /api/agentkit/access` — buyer agent runs Step 3 sign + Step 4 hook (demo)
+- `GET /api/worldid/config` · `POST /api/worldid/rp-signature` · `POST /api/worldid/verify` — Sandbox IDKit
 - `POST /api/turn` — multi-turn intent → UCP + ENS
 - `POST /api/discover` — one-shot discovery
+- `POST /api/settle` — MockUSDC pay + commission hold/release
 
 `ENS_WRITE_MODE=dry-run` (safe default) builds namespaces without txs. Use `live` + deployer key for Sepolia writes.
 
@@ -187,6 +218,7 @@ See [docs/agentkit.md](docs/agentkit.md).
 
 - [Architecture](docs/architecture.md)
 - [AgentKit](docs/agentkit.md)
+- [World Continuity implementation log](docs/world-continuity-implementation-log.md) (rubric + Orb vs Sandbox)
 - [World product feedback](docs/world-product-feedback.md) (AgentKit / AgentBook / World ID)
 - [ENS product feedback](docs/ens-product-feedback.md) (ENSv2 Sepolia App / HCA / nested registries)
 - **ETHOnline ENSv2 Sepolia (not production ENS docs):**

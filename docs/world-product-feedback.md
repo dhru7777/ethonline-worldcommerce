@@ -12,7 +12,11 @@
 | [3.3 Settle](#33-settle-against-the-card-not-against-a-boolean-must-have) | Money moves only if the action is in scope |
 | [3.4 Could-have](#34-could-have-still-for-commerce) | Register, World ID as card issuer, drop discount samples |
 | [4. Problems](#4-problems-i-hit-why-the-three-primitives) | What broke, with examples, mapped to 3.1–3.4 |
-| [5. What worked](#5-what-was-actually-usable) | `lookupHuman` only |
+| [5. What worked](#5-what-was-actually-usable) | `lookupHuman`, then Steps 3–5 on a catalog route |
+| [5.1 Proof](#51-proof-orb-world-id-bound-the-buyer-agent) | Screens: World ID verified + AgentBook registered |
+| [6. Demo implementation log](#6-demo-implementation-log-what-shipped) | What the running app actually calls |
+
+Continuity rubric / Orb vs Sandbox implementation log: [world-continuity-implementation-log.md](./world-continuity-implementation-log.md).
 
 Jump by problem:
 
@@ -37,9 +41,12 @@ The trust problem is not “prove a human before chat.” It is this:
 
 Merchants will pay a shopping agent to get chosen. If that payout can land without proving the agent is earning for a real person, it is bounty farming. If it can only land when the agent is human-backed, it is a commission to the human.
 
-I used AgentKit as an **incentive gate**: human-backed → release merchant commission to the buyer. Not human-backed → hold the commission.
+I used AgentKit two ways:
 
-I wired `@worldcoin/agentkit` 0.2.1 (`lookupHuman`, AgentBook on World Chain), World ID portal config, and a live settle path. Everything below is from that use case.
+1. **Commerce incentive gate:** human-backed → release merchant commission to the buyer. Not human-backed → hold the commission (`lookupHuman` on `/api/settle`).
+2. **World’s x402 access path (Steps 3–5):** buyer agent signs an `agentkit` header; `createAgentkitHooks` + `InMemoryAgentKitStorage` `free-trial` (3) gate `GET /api/agentkit/data`. Miss / exhausted → HTTP 402.
+
+I wired `@worldcoin/agentkit` 0.2.1 (`lookupHuman`, `createAgentkitClient`, `createAgentkitHooks`, AgentBook on World Chain), World ID portal config, and a live settle path. Everything below is from that use case.
 
 ---
 
@@ -193,6 +200,52 @@ World ID verify is not in this package. I created RP action `human-backed-agent`
 
 ## 5. What was actually usable
 
-Live `lookupHuman` on World Chain, no Sandbox required. That is the piece I kept.
+Live `lookupHuman` on World Chain, no Sandbox required. That is the piece the commission gate still uses.
 
-For agent commerce, a boolean is not enough. I need a **scope card** (what the human wants), **guardrails** (may this action happen), and **settle against that card** (money only moves if the agent is still spending for that human). The kit’s money types (`free` / `free-trial` / `discount`) push the demos the rubric already rejects. The workarounds (env capacity, assume-human, UI guardrail copy, commission `if` in Node) are in my repo, not in AgentKit.
+### 5.1 Proof: Orb World ID bound the buyer agent
+
+Register is **once**. Payout does not show a QR. These screens are the write that made `lookupHuman(0xCD64…)` return a human id. After this, `/api/settle` released commission on the live demo (`checkedVia: agentbook-live`, not the mock).
+
+| | Value |
+|---|---|
+| Agent wallet | `0xCD643061B9a5D96AD8595B252fE098EA33a39D91` |
+| Human (nullifier / AgentBook id) | `0x249394758bdbf6696accf5c1a7f8721933ce436aef6599100b8e1a76cf427ff4` |
+| Merkle root | `0xef48ea05675da13d12c934a793b4593a36f9b9d21bafbda13fe730294c6875f` |
+| Register tx (World Chain) | [`0x25e4710c…b1e4`](https://worldscan.org/tx/0x25e4710cc1432567536c3a72e35a1aac53a421a1689a7abbc449ce0c271bb1e4) |
+| Relay | `https://x402-worldchain.vercel.app` |
+| Status CLI | `npx @worldcoin/agentkit-cli status 0xCD64…` → **registered** |
+
+**1. World ID verified, then AgentBook write**
+
+![World ID verified and agent registered on World Chain](assets/agentbook-world-id-verified.png)
+
+**2. Same wallet resolves as registered (no second QR)**
+
+![agentkit-cli status registered with human id](assets/agentbook-cli-status.png)
+
+The human behind this Orb is whoever signed the QR (mentor path when I did not have Orb). The demo agent is still **this** wallet. Judges can tap **AgentBook live** in the header to see these screens in the app.
+
+---
+
+I later wired the kit the way the integrate doc wants: `createAgentkitClient.createHeader` (Step 3) and `createAgentkitHooks` + `InMemoryAgentKitStorage` `free-trial` (Steps 4–5) on `GET /api/agentkit/data`. That is a real AgentKit HTTP gate. It still does not move Sepolia MockUSDC. When AgentBook has no human (no Orb register), the catalog correctly 402s and commission still **holds**. That is the honest demo.
+
+For agent commerce, a boolean is not enough. I need a **scope card** (what the human wants), **guardrails** (may this action happen), and **settle against that card** (money only moves if the agent is still spending for that human). The kit’s money types (`free` / `free-trial` / `discount`) are the right shape for API access, not for merchant bids. I kept both: World’s access path on the catalog, my commission `if` on settle.
+
+## 6. Demo implementation log (what shipped)
+
+| World integrate step | In worldCommerce? | Where judges should look |
+|---|---|---|
+| 1. `npm install @worldcoin/agentkit` | Yes | `package.json` `^0.2.1` |
+| 2. AgentBook register (QR / Orb World App) | **Done** (one-time) | [§5.1 screens](#51-proof-orb-world-id-bound-the-buyer-agent) · tx `0x25e4710c…` · demo chip **AgentBook live** |
+| 2b. AgentBook resolve | Yes | `src/agentkit/verify.ts` `lookupHuman` |
+| 3. `createAgentkitClient` wrap fetch | Yes (server-side buyer agent) | `src/agentkit/resource.ts` `probeBuyerAgentAccess` · UI `GET /api/agentkit/access` |
+| 4. `createAgentkitHooks` + 402 resource | Yes (Node HTTP, not Hono) | `GET /api/agentkit/data` · `requestHook` |
+| 4b. Hono + `@x402/hono` + live World Chain USDC facilitator settle | **No** | Docs sample. We return 402 JSON with `accepts` + `extensions.agentkit`. We do not settle World USDC on that 402. |
+| 5. `InMemoryAgentKitStorage` `free-trial` uses: 3 | Yes | same module; process memory (resets on deploy) |
+| 5b. Database-backed storage | **No** | World says InMemory is for local/demo |
+| Commission incentive (our inversion) | Yes | `POST /api/settle` · merchant1 → buyer only if lookup passed |
+| World ID Sandbox App / IDKit in UI | **Yes** | Header **Sandbox ID** · `GET/POST /api/worldid/*` · TestFlight World ID (Sandbox) |
+
+**Value prop in the demo:** World’s kit gives human-backed agents **cheaper API access** (free-trial catalog). We also give them **merchant commission** at payout. Bots can still shop via `/api/turn`. They do not get the catalog grant or the bid.
+
+**Orb:** required once to *write* AgentBook. That write is done (screens above). QR is not per purchase. TestFlight Sandbox is a separate IDKit path and still does not write AgentBook.

@@ -6,6 +6,9 @@ export type AgentProfilePayload = {
   role: "buyer" | "seller";
   configured: boolean;
   name: string;
+  /** Demo display name — always Buyer Agent / Shopify Agent */
+  displayName: string;
+  ensName: string;
   agentId: number;
   chainId: number;
   chainLabel: string;
@@ -154,10 +157,19 @@ export async function buildAgentProfile(role: "buyer" | "seller"): Promise<Agent
     });
   }
 
+  const displayName = role === "buyer" ? "Buyer Agent" : "Shopify Agent";
+  const ensName =
+    role === "buyer"
+      ? config.ens.buyerName || "agent.dheeraj.eth"
+      : config.ens.shopifyAgentName || "agent.shopify.eth";
+
   return {
     role,
     configured: true,
-    name: (typeof scan?.name === "string" && scan.name) || base.name,
+    // Prefer demo labels over 8004scan indexer names (e.g. craidt-buyer-agent / Attention Agent)
+    name: displayName,
+    displayName,
+    ensName,
     agentId: base.agentId,
     chainId: base.chainId,
     chainLabel: base.chainLabel,

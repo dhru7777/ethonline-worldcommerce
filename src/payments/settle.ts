@@ -4,6 +4,7 @@ import {
   http,
   parseAbi,
   formatUnits,
+  formatEther,
   type Address,
   type Hex,
 } from "viem";
@@ -16,6 +17,12 @@ const erc20Abi = parseAbi([
   "function transfer(address to, uint256 amount) returns (bool)",
   "function decimals() view returns (uint8)",
 ]);
+
+/** Enough Sepolia ETH for a couple of ERC-20 transfers. */
+const MIN_OPERABLE_ETH = 800_000_000_000_000n; // 0.0008 ETH
+/** Leave this on the funder so it can still send its own txs. */
+const FUNDER_RESERVE_ETH = 400_000_000_000_000n; // 0.0004 ETH
+const DUST_ETH = 50_000_000_000_000n; // 0.00005 ETH
 
 function pk(raw: string): Hex {
   const t = raw.trim();
@@ -106,6 +113,47 @@ async function ethBalance(address: Address): Promise<bigint> {
   return publicClient.getBalance({ address });
 }
 
+type GasFunder = { name: string; privateKey: string; address: Address };
+
+/**
+ * Top up `to` with only what funders can spare (never a fixed 0.01 ETH).
+ * Prefer merchant1 (usually has more Sepolia ETH) then Shopify.
+ */
+async function bootstrapGas(
+  to: Address,
+  label: string,
+  funders: GasFunder[],
+): Promise<Record<string, unknown> | null> {
+  const bal = await ethBalance(to);
+  if (bal >= MIN_OPERABLE_ETH) return null;
+
+  const need = MIN_OPERABLE_ETH - bal + 200_000_000_000_000n;
+  for (const f of funders) {
+    if (f.address.toLowerCase() === to.toLowerCase()) continue;
+    const fBal = await ethBalance(f.address);
+    const available = fBal > FUNDER_RESERVE_ETH ? fBal - FUNDER_RESERVE_ETH : 0n;
+    if (available < DUST_ETH) continue;
+    const valueWei = available < need ? available : need;
+    const hash = await sendEth({
+      privateKey: f.privateKey,
+      to,
+      valueWei,
+    });
+    return {
+      kind: "gas-bootstrap",
+      to: label,
+      from: f.name,
+      hash,
+      valueEth: formatEther(valueWei),
+    };
+  }
+
+  throw new Error(
+    `Settlement gas: ${label} has ${formatEther(bal)} ETH (need ~${formatEther(MIN_OPERABLE_ETH)}). ` +
+      `Funder wallets are too low on Sepolia ETH to top up — add a little Sepolia ETH to Shopify or Merchant1.`,
+  );
+}
+
 export type SettleInput = {
   priceCents: number;
   merchantPayTo: Address;
@@ -117,7 +165,7 @@ export type SettleInput = {
 /**
  * Buyer pays full price USDC → selected merchant.
  * Commission always Merchant1 → buyer (demo mapping).
- * Gas bootstrap from Shopify wallet when needed.
+ * Gas bootstrap from Merchant1 / Shopify when needed (affordable amounts only).
  */
 export async function settlePurchase(input: SettleInput) {
   const buyerPk = config.buyer.privateKey;
@@ -137,27 +185,16 @@ export async function settlePurchase(input: SettleInput) {
   const nhcRaw = priceRaw - commissionRaw;
 
   const steps: Array<Record<string, unknown>> = [];
-  const MIN_GAS = 5_000_000_000_000_000n; // 0.005 ETH
+  const funders: GasFunder[] = [
+    { name: "merchant1", privateKey: m1Pk, address: m1Addr },
+    { name: "shopify", privateKey: shopifyPk, address: shopifyAddr },
+  ];
 
-  // Bootstrap gas for buyer + merchant1 from Shopify if needed
-  if ((await ethBalance(buyerAddr)) < MIN_GAS) {
-    const h = await sendEth({
-      privateKey: shopifyPk,
-      to: buyerAddr,
-      valueWei: 10_000_000_000_000_000n, // 0.01
-    });
-    steps.push({ kind: "gas-bootstrap", to: "buyer", hash: h });
-  }
-  if ((await ethBalance(m1Addr)) < MIN_GAS) {
-    const h = await sendEth({
-      privateKey: shopifyPk,
-      to: m1Addr,
-      valueWei: 10_000_000_000_000_000n,
-    });
-    steps.push({ kind: "gas-bootstrap", to: "merchant1", hash: h });
-  }
+  const buyerGas = await bootstrapGas(buyerAddr, "buyer", funders);
+  if (buyerGas) steps.push(buyerGas);
+  const m1Gas = await bootstrapGas(m1Addr, "merchant1", funders);
+  if (m1Gas) steps.push(m1Gas);
 
-  // Ensure merchant1 can pay commission: top up from Shopify if short
   const m1Usdc = await usdcBalance(m1Addr);
   if (m1Usdc < commissionRaw) {
     const need = commissionRaw - m1Usdc;

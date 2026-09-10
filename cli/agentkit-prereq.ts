@@ -20,7 +20,8 @@ async function status(wallet: string) {
   console.log(`Registered ${Boolean(humanId)}`);
   console.log(`humanId    ${humanId ?? "(null)"}`);
   const v = await verifyAgentHumanBacked(wallet);
-  console.log(`verify()   humanBacked=${v.isHumanBacked} via=${v.checkedVia} tier=${v.capacityTier}`);
+  console.log(`verify()   humanBacked=${v.isHumanBacked} via=${v.checkedVia} mocked=${v.mocked} tier=${v.capacityTier}`);
+  if (v.mockNote) console.log(`mockNote   ${v.mockNote}`);
   if (v.failureReason) console.log(`reason     ${v.failureReason}`);
   return Boolean(humanId);
 }
@@ -61,15 +62,15 @@ async function prereq() {
     }
   }
 
-  console.log("5) Demo mode until registration / Sandbox");
+  console.log("5) Demo mock (labeled — does not write AgentBook)");
   console.log(
     `   AGENTKIT_ASSUME_HUMAN_BACKED=${config.agentkit.assumeHumanBacked}`,
   );
   console.log(
-    "   true  → allow path even if AgentBook miss (hackathon demo)",
+    "   true  → live lookup still runs; if unregistered, mock human-backed so commission *releases*",
   );
   console.log(
-    "   false → deny / hold commission when not registered (honest Continuity demo)\n",
+    "   false → hold commission when not registered\n",
   );
 
   console.log("6) When Sandbox access arrives");

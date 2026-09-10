@@ -36,6 +36,11 @@ const PROFILE_TABS = [
   { id: "verify", label: "Verify" },
 ];
 
+/** AgentBook registration proof on World Chain. */
+const AGENTBOOK_PROOF_TX =
+  "0x25e4710cc1432567536c3a72e35a1aac53a421a1689a7abbc449ce0c271bb1e4";
+const AGENTBOOK_PROOF_EXPLORER = `https://worldscan.org/tx/${AGENTBOOK_PROOF_TX}`;
+
 function buyerLabel() {
   return "Buyer Agent";
 }
@@ -127,6 +132,19 @@ function parentEnsFor(name) {
   return ensNames.root || "shopify.eth";
 }
 
+const ENS_EXPLORER = "https://hackathon-deployment-portal-app.ens-cf.workers.dev";
+const ENS_BUYER_ADDR = "0xCD643061B9a5D96AD8595B252fE098EA33a39D91";
+
+function ensExplorerNameUrl(name) {
+  return `${ENS_EXPLORER}/${encodeURIComponent(String(name || ""))}`;
+}
+function ensExplorerRecordsUrl(name) {
+  return `${ensExplorerNameUrl(name)}/records`;
+}
+function ensExplorerAddrNamesUrl(addr) {
+  return `${ENS_EXPLORER}/addr/${addr}/names`;
+}
+
 /** ENS chip + ⓘ that reveals the bound address on hover / click. */
 function ensChip(name, opts = {}) {
   if (!name) return "—";
@@ -136,12 +154,13 @@ function ensChip(name, opts = {}) {
   const lines = [name, parent ? `parent · ${parent}` : "", ...extra.filter(Boolean), address ? `addr · ${address}` : ""]
     .filter(Boolean);
   const tip = lines.join("\n");
+  const nameHref = ensExplorerNameUrl(name);
   const info = address
     ? `<button type="button" class="ens-i" aria-label="Show address for ${esc(name)}" title="${esc(address)}" data-addr="${esc(address)}">i</button>
-       <span class="ens-addr-tip" role="tooltip"><span class="ens-addr-label">address</span><code>${esc(address)}</code></span>`
+       <span class="ens-addr-tip" role="tooltip"><span class="ens-addr-label">address</span><code><a href="${esc(ensExplorerAddrNamesUrl(address))}" target="_blank" rel="noopener">${esc(address)}</a></code></span>`
     : "";
   return `<span class="ens-wrap" tabindex="0" title="${esc(tip)}" data-ens="${esc(name)}" data-addr="${esc(address)}">
-    <span class="ens-chip">${esc(name)}</span>${info}
+    <a class="ens-chip" href="${esc(nameHref)}" target="_blank" rel="noopener">${esc(name)}</a>${info}
   </span>`;
 }
 
@@ -230,20 +249,37 @@ function clearFeed(el, hint) {
   }
 }
 
-function addBubble(feed, { side, label, html, sys = false }) {
+function addBubble(feed, { side, label, html, sys = false, delay = 0 }) {
   const hint = feed.querySelector(".empty-hint");
   if (hint) hint.remove();
   const wrap = document.createElement("div");
-  wrap.className = `bwrap ${side === "out" ? "sent" : side === "mid" ? "mid" : "recv"}`;
+  const align =
+    side === "out" || side === "human" ? "sent" : side === "mid" ? "mid" : "recv";
+  const bubbleClass = sys
+    ? "sys"
+    : side === "out"
+      ? "out"
+      : side === "human"
+        ? "human"
+        : "inc";
+  wrap.className = `bwrap ${align}`;
   wrap.innerHTML = `
     ${label ? `<div class="blabel">${esc(label)}</div>` : ""}
-    <div class="bubble ${sys ? "sys" : side === "out" ? "out" : "inc"}">${html}</div>
+    <div class="bubble ${bubbleClass}">${html}</div>
   `;
   feed.appendChild(wrap);
   wireEnsInfoClicks(wrap);
   requestAnimationFrame(() => wrap.classList.add("show"));
   feed.scrollTop = feed.scrollHeight;
+  if (delay > 0) {
+    return sleep(delay).then(() => wrap);
+  }
   return wrap;
+}
+
+async function say(feed, opts) {
+  const delay = opts.delay ?? 900;
+  return addBubble(feed, { ...opts, delay });
 }
 
 function lockPreviousChoices(selected) {
@@ -255,7 +291,7 @@ function lockPreviousChoices(selected) {
   });
 }
 
-function addAgentAsk(message, options) {
+async function addAgentAsk(message, options) {
   let opts = (options || []).map((o) => String(o).trim()).filter(Boolean);
   if (sameChoices(opts, lastChoiceSet)) opts = [];
   lastChoiceSet = opts;
@@ -265,7 +301,7 @@ function addAgentAsk(message, options) {
         `<button type="button" class="prompt-chip choice-chip" data-q="${esc(opt)}">${esc(opt)}</button>`,
     )
     .join("");
-  const wrap = addBubble($("feedBuyer"), {
+  const wrap = await say($("feedBuyer"), {
     side: "inc",
     label: buyerLabel(),
     html: `${esc(message)}${chips ? `<div class="choice-row">${chips}</div>` : ""}`,
@@ -291,7 +327,9 @@ function buildProfilePanel(tabId, data) {
   const links = (sec.verify && sec.verify.links) || [];
 
   if (tabId === "identity") {
-    return [
+    const rows = [
+      profileKv("Name", data.displayName || data.name || "—"),
+      profileKv("ENS", data.ensName || "—"),
       profileKv("Agent ID", `#${id.agentId ?? data.agentId}`),
       profileKv("Chain", id.chainLabel || data.chainLabel),
       profileKv("Global ID", id.globalId || data.globalId),
@@ -300,7 +338,27 @@ function buildProfilePanel(tabId, data) {
       profileKv("x402", id.x402Support ? "yes" : "no"),
       profileKv("Trust", (id.trust || []).join(", ") || "reputation"),
       profileKv("ENSIP-25", id.ensip25Key || data.ensip25Key),
-    ].join("");
+    ];
+    const ak = window.__agentKit;
+    const wallet = String(id.agentWallet || data.walletAddress || "").toLowerCase();
+    const liveWallet = String(ak?.agentWallet || window.__buyerWallet || "").toLowerCase();
+    const isBuyer = data.role === "buyer" || (wallet && liveWallet && wallet === liveWallet);
+    if (ak && isBuyer) {
+      rows.push(
+        profileKv(
+          "AgentBook",
+          ak.checkedVia === "agentbook-live" && ak.isHumanBacked && ak.mocked !== true
+            ? "registered · live"
+            : ak.mocked
+              ? "demo mock"
+              : ak.isHumanBacked
+                ? "human-backed"
+                : "unregistered",
+        ),
+      );
+      if (ak.humanId) rows.push(profileKv("World human", ak.humanId));
+    }
+    return rows.join("");
   }
   if (tabId === "ranking") {
     if (rank.healthScore == null && rank.popularity == null && rank.rank == null) {
@@ -342,7 +400,7 @@ function renderProfilePop(role, data, errMsg) {
   const pop = $(`${role}Popover`);
   if (!pop) return;
   if (errMsg) {
-    pop.innerHTML = `<div class="pop-title">ERC-8004 · ${esc(role)} agent</div><div class="wallet-err">${esc(errMsg)}</div>`;
+    pop.innerHTML = `<div class="pop-title">ERC-8004 · ${esc(role === "buyer" ? "Buyer Agent" : "Shopify Agent")}</div><div class="wallet-err">${esc(errMsg)}</div>`;
     return;
   }
   const active = profileTab[role] || "identity";
@@ -360,8 +418,9 @@ function renderProfilePop(role, data, errMsg) {
       : "";
 
   pop.innerHTML = `
-    <div class="pop-title">ERC-8004 · ${esc(role)} agent</div>
-    <div class="pop-agent-name">${esc(data.name || "—")}</div>
+    <div class="pop-title">ERC-8004 · ${esc(role === "buyer" ? "Buyer Agent" : "Shopify Agent")}</div>
+    <div class="pop-agent-name">${esc(data.displayName || data.name || (role === "buyer" ? "Buyer Agent" : "Shopify Agent"))}</div>
+    <div class="pop-agent-ens">${esc(data.ensName || (role === "buyer" ? ensNames.buyer : ensNames.shopifyAgent))}</div>
     <div class="wallet-tab-bar profile-tab-bar">${tabBar}</div>
     ${panels}
     ${warn}
@@ -481,7 +540,7 @@ async function renderProductsStaggered(offers) {
     `;
     feed.appendChild(row);
     wireEnsInfoClicks(row);
-    await sleep(480);
+    await sleep(720);
     row.classList.add("show");
     if (i === 0) row.classList.add("glow");
     feed.scrollTop = feed.scrollHeight;
@@ -490,6 +549,13 @@ async function renderProductsStaggered(offers) {
 
 function nhcCents(priceCents, bps = 170) {
   return Math.max(1, Math.round(priceCents * (1 - bps / 10000)));
+}
+
+function agentBookLine(ak) {
+  if (ak.isHumanBacked) {
+    return `AgentBook · human-backed ✓ · ${ensChip(ensNames.buyer, ["Buyer Agent"])}`;
+  }
+  return `AgentBook · not human-backed · commission will hold`;
 }
 
 async function fetchAgentKit() {
@@ -520,19 +586,18 @@ async function showGuardrailsAndApproval(offers, parsed) {
   addPhase("guardrails");
 
   const ak = await fetchAgentKit();
+  applyAgentBookChips(ak);
   const capacityLine = ak.isHumanBacked
     ? `capacity: ok · tier ${ak.capacityTier}`
     : `capacity: HOLD · ${ak.capacityTier}`;
 
-  addBubble($("feedBuyer"), {
+  await say($("feedBuyer"), {
     side: "inc",
     label: "worldAgent",
-    html: ak.isHumanBacked
-      ? `AgentBook · human-backed ✓ · ${esc(ak.checkedVia)} · tier ${esc(ak.capacityTier)} · ${ensChip(ensNames.buyer, ["Buyer Agent primary name"])}`
-      : `AgentBook · not human-backed · commission will hold<br/><span class="wallet-muted">${esc(ak.failureReason || "")}</span>`,
+    html: agentBookLine(ak),
   });
 
-  addBubble($("feedBuyer"), {
+  await say($("feedBuyer"), {
     side: "inc",
     label: buyerLabel(),
     html: `<div>Guardrails:</div><div class="guard-lines">  budget ≤ ${esc(budget)}
@@ -541,22 +606,24 @@ async function showGuardrailsAndApproval(offers, parsed) {
   ${esc(capacityLine)}</div>`,
   });
 
-  addBubble($("feedBuyer"), {
+  await say($("feedBuyer"), {
     side: "inc",
     label: buyerLabel(),
     html: `Agent pick: <b>${esc(pick.title)}</b><br/>Price $${esc(price)} · NHC $${esc(nhc)}<br/>${ensChip(pickEns, ["merchant leaf under shopify.eth"])}`,
   });
 
-  // Human approval on the right (HITL)
-  const wrap = addBubble($("feedBuyer"), {
-    side: "out",
+  const wrap = await say($("feedBuyer"), {
+    side: "human",
     label: "human",
-    html: `Approve <b>${esc(pick.title)}</b> for $${esc(price)}?
-      ${!ak.isHumanBacked ? `<div class="wallet-muted" style="margin-top:6px">Note: commission held until human-backed</div>` : ""}
-      <div class="approve-row">
+    html: `<div class="approve-copy">Approve <b>${esc(pick.title)}</b> for $${esc(price)}?</div>${
+      !ak.isHumanBacked
+        ? `<div class="wallet-muted" style="margin-top:6px">Commission held until AgentBook says human-backed</div>`
+        : ""
+    }<div class="approve-row">
         <button type="button" class="approve-btn" data-decision="approve">Approve</button>
         <button type="button" class="approve-btn reject" data-decision="reject">Reject</button>
       </div>`,
+    delay: 500,
   });
 
   wrap.querySelectorAll(".approve-btn").forEach((btn) => {
@@ -568,15 +635,15 @@ async function showGuardrailsAndApproval(offers, parsed) {
       });
       if (decision !== "approve") {
         pendingOffer = null;
-        addBubble($("feedBuyer"), {
+        await say($("feedBuyer"), {
           side: "inc",
           label: buyerLabel(),
-          html: "Rejected — say another product or budget to search again.",
+          html: "Rejected. Say another product or budget to search again.",
         });
         return;
       }
 
-      addBubble($("feedBuyer"), {
+      await say($("feedBuyer"), {
         side: "out",
         label: "you",
         html: "Agent pick approved",
@@ -584,12 +651,12 @@ async function showGuardrailsAndApproval(offers, parsed) {
       addPhase("payout");
       setBusy(true);
       try {
-        addBubble($("feedBuyer"), {
+        await say($("feedBuyer"), {
           side: "inc",
           label: buyerLabel(),
-          html: `Paying MockUSDC on Sepolia · $${esc(price)} → ${ensChip(pickEns)}…`,
+          html: `Paying MockUSDC on Sepolia · $${esc(price)} to ${ensChip(pickEns)}…`,
         });
-        addBubble($("feedSeller"), {
+        await say($("feedSeller"), {
           side: "inc",
           label: shopifyLabel(),
           html: `Settlement started · ${ensChip(pickEns)} via ${ensChip(ensNames.shopifyAgent)}`,
@@ -640,7 +707,7 @@ async function showGuardrailsAndApproval(offers, parsed) {
           time: t,
         });
 
-        addBubble($("feedBuyer"), {
+        await say($("feedBuyer"), {
           side: "inc",
           label: buyerLabel(),
           html: txLineHtml({
@@ -655,7 +722,7 @@ async function showGuardrailsAndApproval(offers, parsed) {
           }),
         });
 
-        addBubble($("feedSeller"), {
+        await say($("feedSeller"), {
           side: "inc",
           label: shopifyLabel(),
           html: txLineHtml({
@@ -670,11 +737,11 @@ async function showGuardrailsAndApproval(offers, parsed) {
           }),
         });
 
-        addBubble($("feedBuyer"), {
+        await say($("feedBuyer"), {
           side: "inc",
           label: "worldAgent",
           html: v.isHumanBacked
-            ? `Incentive gate · human-backed ✓ · release commission → ${ensChip(ensNames.buyer)}`
+            ? `Incentive gate · human-backed ✓ · release commission to ${ensChip(ensNames.buyer)}`
             : `Incentive gate · HOLD commission (not human-backed)`,
         });
 
@@ -702,7 +769,7 @@ async function showGuardrailsAndApproval(offers, parsed) {
             time: t,
           });
 
-          addBubble($("feedBuyer"), {
+          await say($("feedBuyer"), {
             side: "inc",
             label: shopifyLabel(),
             html: `${txLineHtml({
@@ -716,7 +783,7 @@ async function showGuardrailsAndApproval(offers, parsed) {
               explorer: s.explorers?.commission,
             })}`,
           });
-          addBubble($("feedSeller"), {
+          await say($("feedSeller"), {
             side: "inc",
             label: shopifyLabel(),
             html: txLineHtml({
@@ -725,13 +792,13 @@ async function showGuardrailsAndApproval(offers, parsed) {
               fromEns: merchantEns,
               toEns: ensNames.buyer,
               via: ensNames.root,
-              title: "Commission bid → buyer",
+              title: "Commission to buyer",
               hash: s.commissionTx.hash,
               explorer: s.explorers?.commission,
             }),
           });
         } else {
-          addBubble($("feedBuyer"), {
+          await say($("feedBuyer"), {
             side: "inc",
             label: shopifyLabel(),
             html: `Commission held · <span class="tx-out">$${esc(s.commissionFormatted)}</span> not sent`,
@@ -743,13 +810,13 @@ async function showGuardrailsAndApproval(offers, parsed) {
         loadWallet("buyer");
         loadWallet("seller");
 
-        addBubble($("feedBuyer"), {
+        await say($("feedBuyer"), {
           side: "inc",
           label: buyerLabel(),
           html: `<b>Receipt</b><br/>
             ${esc(s.title)} · ${ensChip(merchantEns)}<br/>
             Paid <span class="tx-out">$${esc(s.priceFormatted)}</span> · NHC $${esc(s.nhcFormatted)}<br/>
-            ${ensChip(ensNames.buyer)} → ${ensChip(merchantEns)} · via ${ensChip(ensNames.root)}`,
+            ${ensChip(ensNames.buyer)} to ${ensChip(merchantEns)} via ${ensChip(ensNames.root)}`,
         });
 
         const ratingWrap = document.createElement("div");
@@ -764,28 +831,62 @@ async function showGuardrailsAndApproval(offers, parsed) {
         $("feedBuyer").appendChild(ratingWrap);
         requestAnimationFrame(() => ratingWrap.classList.add("show"));
         $("feedBuyer").scrollTop = $("feedBuyer").scrollHeight;
+        await sleep(500);
 
         const starsEl = ratingWrap.querySelector("#ratingStars");
         const valEl = ratingWrap.querySelector("#ratingVal");
         let rated = false;
-        const finishRate = (v) => {
+        const finishRate = async (v) => {
           if (rated) return;
           rated = true;
           starsEl.querySelectorAll(".star").forEach((s) =>
             s.classList.toggle("on", Number(s.dataset.v) <= v),
           );
-          valEl.textContent = `${v}/5 · ${v * 20}/100`;
-          addBubble($("feedBuyer"), {
-            side: "inc",
-            label: buyerLabel(),
-            html: `Reputation noted · ${esc(String(v))}/5 (demo log · on-chain feedback next)`,
-          });
-          addBubble($("feedSeller"), {
-            side: "inc",
-            label: shopifyLabel(),
-            html: `Feedback · ${esc(String(v))}/5 on ${ensChip(merchantEns)}`,
-            sys: true,
-          });
+          valEl.textContent = `${v}/5 · writing ERC-8004…`;
+          try {
+            const fbRes = await fetch("/api/feedback", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                stars: v,
+                title: s.title,
+                ensName: merchantEns,
+                agentId: identities?.seller?.agentId,
+              }),
+              signal: AbortSignal.timeout(180000),
+            });
+            const fbData = await fbRes.json();
+            if (!fbRes.ok) throw new Error(fbData.error || "Feedback failed");
+            const fb = fbData.feedback;
+            valEl.innerHTML = `${v}/5 · on-chain ✓`;
+            const txLink = fb.explorer
+              ? `<a href="${esc(fb.explorer)}" target="_blank" rel="noopener">${esc(shortHash(fb.hash))}</a>`
+              : "";
+            const scanLink = fb.scanUrl
+              ? `<a href="${esc(fb.scanUrl)}" target="_blank" rel="noopener">8004scan ↗</a>`
+              : "";
+            await say($("feedBuyer"), {
+              side: "inc",
+              label: buyerLabel(),
+              html: `ERC-8004 feedback · <b>${esc(String(v))}/5</b> to Shopify Agent #${esc(String(fb.agentId))}<br/>${txLink}${scanLink ? ` · ${scanLink}` : ""}`,
+            });
+            await say($("feedSeller"), {
+              side: "inc",
+              label: shopifyLabel(),
+              html: `Reputation received · ${esc(String(v))}/5 on-chain · ${ensChip(ensNames.shopifyAgent)}${txLink ? `<br/>${txLink}` : ""}`,
+              sys: true,
+            });
+            profileTab.seller = "feedback";
+            profileCache.seller = null;
+            await loadProfile("seller");
+          } catch (err) {
+            valEl.textContent = `${v}/5 · failed`;
+            await say($("feedBuyer"), {
+              side: "inc",
+              label: buyerLabel(),
+              html: `ERC-8004 feedback failed: ${esc(err.message || err)}`,
+            });
+          }
         };
         starsEl.addEventListener("mouseover", (ev) => {
           if (rated) return;
@@ -801,14 +902,17 @@ async function showGuardrailsAndApproval(offers, parsed) {
         });
         starsEl.addEventListener("click", (ev) => {
           const v = Number(ev.target.dataset.v);
-          if (!v) return;
+          if (!v || rated) return;
           finishRate(v);
         });
       } catch (err) {
-        addBubble($("feedBuyer"), {
+        await say($("feedBuyer"), {
           side: "mid",
           html: `Settlement error: ${esc(err.message || String(err))}`,
           sys: true,
+        });
+        wrap.querySelectorAll(".approve-btn").forEach((b) => {
+          b.disabled = false;
         });
       } finally {
         setBusy(false);
@@ -828,6 +932,7 @@ async function boot() {
   if (health.payment?.commissionBps) commissionBps = health.payment.commissionBps;
 
   registerEnsAddr(ensNames.buyer, health.ens?.buyerAgentAddress || identities?.buyer?.walletAddress);
+  window.__buyerWallet = health.ens?.buyerAgentAddress || identities?.buyer?.walletAddress || "";
   registerEnsAddr(ensNames.buyerRegistry, health.ens?.buyerRegistryAddress);
   registerEnsAddr(ensNames.shopifyAgent, health.ens?.shopifyAddress || identities?.seller?.walletAddress);
   registerEnsAddr(ensNames.root, health.ens?.shopifyAddress || identities?.seller?.walletAddress);
@@ -836,7 +941,8 @@ async function boot() {
   if (ms.m2) registerEnsAddr("cocoa-house.agent.shopify.eth", ms.m2);
   if (ms.m3) registerEnsAddr("sweet-factory.agent.shopify.eth", ms.m3);
 
-  $("status").textContent = `${ensNames.root} · ${health.ens.writeMode}`;
+  const ak = await fetchAgentKit();
+  applyAgentBookChips(ak);
   $("buyerSub").innerHTML = ensChip(ensNames.buyer, {
     extra: [`parent · ${ensNames.buyerRegistry}`, "Buyer Agent"],
   });
@@ -849,10 +955,20 @@ async function boot() {
   wireEnsTreeUi();
 }
 
+function applyAgentBookChips(ak) {
+  window.__agentKit = ak || null;
+  if (ak?.humanId && $("agentbookProofHuman")) {
+    $("agentbookProofHuman").textContent = ak.humanId;
+  }
+  if (ak?.agentWallet && $("agentbookProofAgent")) {
+    $("agentbookProofAgent").textContent = ak.agentWallet;
+  }
+}
+
 function renderEnsNode(node, depth = 0) {
   const kids = node.children || [];
   const hasKids = kids.length > 0;
-  const openDefault = depth < 2;
+  const openDefault = false;
   const can = (node.perms?.can || [])
     .slice(0, 4)
     .map((k) => `<span class="ens-pill can">${esc(k)}</span>`)
@@ -861,8 +977,15 @@ function renderEnsNode(node, depth = 0) {
     .slice(0, 3)
     .map((k) => `<span class="ens-pill deny">${esc(k)}</span>`)
     .join("");
-  const link = node.explorerUrl
-    ? `<a href="${esc(node.explorerUrl)}" target="_blank" rel="noopener">explorer ↗</a>`
+  const linkBits = [];
+  if (node.explorerUrl) {
+    linkBits.push(`<a href="${esc(node.explorerUrl)}" target="_blank" rel="noopener">name ↗</a>`);
+  }
+  if (node.recordsUrl) {
+    linkBits.push(`<a href="${esc(node.recordsUrl)}" target="_blank" rel="noopener">records ↗</a>`);
+  }
+  const link = linkBits.length
+    ? `<div class="ens-tdetail-links">${linkBits.join(" · ")}</div>`
     : "";
   const childHtml = hasKids
     ? `<ul class="ens-tline">${kids.map((c) => renderEnsNode(c, depth + 1)).join("")}</ul>`
@@ -924,14 +1047,19 @@ async function openEnsTree() {
     `;
     const note = $("ensTreeNote");
     if (note) {
-      note.innerHTML = `On-chain subnames are live under our UserRegistry. The hackathon explorer may still show <b>0 subnames</b> because it indexes official PermissionedRegistry / ERC-1155 events — not our custom <code>LabelRegistered</code>. Verify via
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth" target="_blank" rel="noopener">shopify.eth</a>
-        ·
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth" target="_blank" rel="noopener">dheeraj.eth</a>
-        (subregistry linked). After explorer-compatible redeploy, try
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth" target="_blank" rel="noopener">agent.dheeraj.eth</a>
-        ·
-        <a href="https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth" target="_blank" rel="noopener">intent.agent.dheeraj.eth</a>.`;
+      const L = forest.links || {
+        shopify: ensExplorerNameUrl("shopify.eth"),
+        shopifyRecords: ensExplorerRecordsUrl("shopify.eth"),
+        dheeraj: ensExplorerNameUrl("dheeraj.eth"),
+        dheerajRecords: ensExplorerRecordsUrl("dheeraj.eth"),
+        buyerNames: ensExplorerAddrNamesUrl(ENS_BUYER_ADDR),
+      };
+      note.innerHTML = `Explorer ·
+        <a href="${esc(L.shopify)}" target="_blank" rel="noopener">shopify.eth</a>
+        · <a href="${esc(L.shopifyRecords)}" target="_blank" rel="noopener">records</a>
+        · <a href="${esc(L.dheeraj)}" target="_blank" rel="noopener">dheeraj.eth</a>
+        · <a href="${esc(L.dheerajRecords)}" target="_blank" rel="noopener">records</a>
+        · <a href="${esc(L.buyerNames)}" target="_blank" rel="noopener">wallet names</a>`;
     }
     renderEnsCol($("ensTreeBuyer"), "Buyer", forest.buyer);
     renderEnsCol($("ensTreeSeller"), "Seller", forest.seller);
@@ -952,8 +1080,396 @@ function wireEnsTreeUi() {
     if (e.target === $("ensTreeOverlay")) closeEnsTree();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeEnsTree();
+    if (e.key === "Escape") {
+      if (tourActive) {
+        abortTour();
+        return;
+      }
+      closeEnsTree();
+    }
   });
+}
+
+/* —— Demo tutorial (spotlight walkthrough) —— */
+let tourActive = false;
+let tourResolveNext = null;
+let tourToken = 0;
+
+function clearTourHighlight() {
+  document.querySelectorAll(".tour-pulse").forEach((el) => el.classList.remove("tour-pulse"));
+  const spot = $("tourSpot");
+  if (spot) spot.style.opacity = "0";
+}
+
+function placeTourTip(target) {
+  const tip = $("tourTip");
+  const spot = $("tourSpot");
+  if (!tip || !spot) return;
+  const pad = 8;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (target) {
+    const r = target.getBoundingClientRect();
+    spot.style.opacity = "1";
+    spot.style.top = `${Math.max(4, r.top - pad)}px`;
+    spot.style.left = `${Math.max(4, r.left - pad)}px`;
+    spot.style.width = `${Math.min(vw - 8, r.width + pad * 2)}px`;
+    spot.style.height = `${Math.min(vh - 8, r.height + pad * 2)}px`;
+    target.classList.add("tour-pulse");
+    const tipW = Math.min(320, vw - 24);
+    let left = Math.min(vw - tipW - 12, Math.max(12, r.left));
+    let top = r.bottom + 14;
+    if (top + 200 > vh) top = Math.max(12, r.top - 200);
+    tip.style.left = `${left}px`;
+    tip.style.top = `${top}px`;
+  } else {
+    spot.style.opacity = "0";
+    tip.style.left = `${Math.max(12, (vw - 320) / 2)}px`;
+    tip.style.top = `${Math.max(24, vh * 0.22)}px`;
+  }
+}
+
+function openTourUi() {
+  const root = $("tourRoot");
+  if (root) root.hidden = false;
+}
+
+function closeTourUi() {
+  const root = $("tourRoot");
+  if (root) root.hidden = true;
+  clearTourHighlight();
+  if (tourResolveNext) {
+    tourResolveNext();
+    tourResolveNext = null;
+  }
+}
+
+function abortTour() {
+  tourActive = false;
+  tourToken += 1;
+  closeTourUi();
+  closeEnsTree();
+  document.querySelectorAll(".pop-wrap.open").forEach((el) => el.classList.remove("open"));
+  const btn = $("tutorialBtn");
+  if (btn) btn.disabled = false;
+}
+
+async function waitForSelector(selector, { timeout = 45000, predicate } = {}) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (!tourActive) throw new Error("tour-aborted");
+    const el = document.querySelector(selector);
+    if (el && (!predicate || predicate(el))) return el;
+    await sleep(120);
+  }
+  throw new Error(`Timed out waiting for ${selector}`);
+}
+
+async function waitWhileBusy(timeout = 120000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (!tourActive) throw new Error("tour-aborted");
+    if (!busy) return;
+    await sleep(120);
+  }
+  throw new Error("Timed out waiting for the demo to finish a step");
+}
+
+function waitForTourNext(autoMs = 0) {
+  return new Promise((resolve) => {
+    tourResolveNext = () => {
+      tourResolveNext = null;
+      resolve("next");
+    };
+    if (autoMs > 0) {
+      setTimeout(() => {
+        if (tourResolveNext) tourResolveNext();
+      }, autoMs);
+    }
+  });
+}
+
+async function runTourStep({
+  step,
+  total,
+  title,
+  body,
+  target,
+  nextLabel = "Next",
+  autoMs = 0,
+  action,
+}) {
+  if (!tourActive) return;
+  clearTourHighlight();
+  $("tourStep").textContent = `${step} / ${total}`;
+  $("tourTitle").textContent = title;
+  $("tourBody").textContent = body;
+  $("tourNext").textContent = nextLabel;
+  placeTourTip(target || null);
+  await sleep(700);
+  if (!tourActive) return;
+  await waitForTourNext(autoMs);
+  if (!tourActive) return;
+  if (typeof action === "function") {
+    await action();
+    await sleep(1200);
+  }
+}
+
+async function openBuyerProfileTour() {
+  document.querySelectorAll(".pop-wrap.open").forEach((el) => el.classList.remove("open"));
+  const wrap = $("buyerProfileWrap");
+  wrap?.classList.add("open");
+  if (profileCache.buyer) renderProfilePop("buyer", profileCache.buyer);
+  else await loadProfile("buyer");
+}
+
+function expandEnsTreeRoots() {
+  ["ensTreeBuyer", "ensTreeSeller"].forEach((id) => {
+    const root = $(id)?.querySelector(".ens-titem");
+    if (!root) return;
+    root.classList.add("is-open");
+    root.querySelector(".ens-trow")?.classList.add("is-open");
+    const child = root.querySelector(":scope > .ens-tline > .ens-titem");
+    if (child) {
+      child.classList.add("is-open");
+      child.querySelector(".ens-trow")?.classList.add("is-open");
+    }
+  });
+}
+
+async function startWorldCommerceTutorial() {
+  if (tourActive || busy) return;
+  const token = ++tourToken;
+  tourActive = true;
+  $("tutorialBtn").disabled = true;
+  document.querySelectorAll(".pop-wrap.open").forEach((el) => el.classList.remove("open"));
+  closeEnsTree();
+  if (typeof window.closeWorldPanel === "function") window.closeWorldPanel();
+  openTourUi();
+
+  const total = 12;
+  const PROMPT = "Find me chocolates under $10";
+
+  try {
+    await runTourStep({
+      step: 1,
+      total,
+      title: "An agent shops for a human",
+      body: "Left is the buyer agent. Right is the Shopify agent. The top bar is the trip: identity, intent, offers, ens, guardrails, payout. Four things must be true, or this is a farm.",
+      target: $("phases") || document.querySelector(".stage"),
+      nextLabel: "Start",
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    await runTourStep({
+      step: 2,
+      total,
+      title: "1. Named counterparties",
+      body: "agent.dheeraj.eth and agent.shopify.eth, not hex. Named buyer, named seller. That is question one.",
+      target: $("buyerSub") || $("buyerPanel"),
+      nextLabel: "Next",
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    await runTourStep({
+      step: 3,
+      total,
+      title: "ENS name and 8004 record",
+      body: "ENS is the name. ERC-8004 is the agent record. World is whether a human is behind the wallet. That shows at payout. Do not mix them.",
+      target: $("buyerProfileBtn"),
+      nextLabel: "Open profile",
+      action: async () => {
+        await openBuyerProfileTour();
+      },
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    await runTourStep({
+      step: 4,
+      total,
+      title: "2. Shop for the human",
+      body: `We type: "${PROMPT}". Labels come from this search, not a fake list.`,
+      target: document.querySelector(`.prompt-chip[data-q="${PROMPT}"]`) || $("q"),
+      nextLabel: "Search",
+      action: async () => {
+        document.querySelectorAll(".pop-wrap.open").forEach((el) => el.classList.remove("open"));
+        const chip = document.querySelector(`.prompt-chip[data-q="${PROMPT}"]`);
+        if (chip) chip.click();
+        else {
+          $("q").value = PROMPT;
+          runTurn(PROMPT);
+        }
+      },
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    clearTourHighlight();
+    $("tourTitle").textContent = "Discovering…";
+    $("tourBody").textContent = "Watch the right panel. Merchants return under shopify.eth.";
+    $("tourStep").textContent = `5 / ${total}`;
+    placeTourTip($("sellerPanel"));
+    await waitWhileBusy(90000);
+    const choice = document.querySelector("#feedBuyer .choice-chip:not(:disabled)");
+    if (choice && tourActive) {
+      choice.click();
+      await waitWhileBusy(90000);
+    }
+    await sleep(900);
+    if (!tourActive || token !== tourToken) return;
+
+    const ensOffer =
+      document.querySelector("#feedSeller .ens-chip") ||
+      document.querySelector("#feedSeller .product-row") ||
+      $("sellerPanel");
+    await runTourStep({
+      step: 5,
+      total,
+      title: "Search-driven ENS",
+      body: "Each offer carries a merchant name under shopify.eth from this result set. Search something else next and the tree changes.",
+      target: ensOffer,
+      nextLabel: "Next",
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    await runTourStep({
+      step: 6,
+      total,
+      title: "3. What if I fire it?",
+      body: "Open the ENS Tree. Buyer roles and seller permissions live here on-chain, not only in the UI.",
+      target: $("ensTreeBtn"),
+      nextLabel: "Open tree",
+      action: async () => {
+        await openEnsTree();
+        await sleep(500);
+        expandEnsTreeRoots();
+      },
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    const pills =
+      document.querySelector(".ens-pill.can") ||
+      document.querySelector(".ens-tree-cols") ||
+      $("ensTreeOverlay");
+    await runTourStep({
+      step: 7,
+      total,
+      title: "EAC: can vs deny",
+      body: "Green means the agent may write. Red means it cannot rewrite registration or commission. Revoke the role and writes stop. That is firing the agent.",
+      target: pills,
+      nextLabel: "Close tree",
+      action: () => closeEnsTree(),
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    const approve = await waitForSelector('button.approve-btn[data-decision="approve"]', {
+      timeout: 90000,
+    }).catch(() => null);
+    const gateTarget =
+      document.querySelector("#feedBuyer .bwrap.sent") ||
+      approve ||
+      $("feedBuyer");
+    await runTourStep({
+      step: 8,
+      total,
+      title: "4. Person or farm?",
+      body: "AgentBook line, guardrails, then Approve. Ranking can be automatic. Money cannot. This tap is the human.",
+      target: gateTarget,
+      nextLabel: "Next",
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    if (approve) {
+      await runTourStep({
+        step: 9,
+        total,
+        title: "Approve: two money events",
+        body: "Purchase goes to the merchant ENS. Then commission release if human-backed, or hold if not.",
+        target: approve,
+        nextLabel: "Approve",
+        action: () => approve.click(),
+      });
+      if (!tourActive || token !== tourToken) return;
+      clearTourHighlight();
+      $("tourTitle").textContent = "Settling…";
+      $("tourBody").textContent =
+        "Watch purchase MockUSDC to the merchant name, then commission release or hold.";
+      $("tourStep").textContent = `9 / ${total}`;
+      placeTourTip($("feedBuyer"));
+      await waitWhileBusy(180000);
+      await sleep(1200);
+    } else {
+      await runTourStep({
+        step: 9,
+        total,
+        title: "Approve when ready",
+        body: "When the Approve bubble appears, tap it. Purchase hits the merchant ENS. Commission follows AgentBook.",
+        target: $("feedBuyer"),
+        nextLabel: "Next",
+      });
+    }
+    if (!tourActive || token !== tourToken) return;
+
+    const commissionTarget =
+      document.querySelector("#feedBuyer .bubble.inc") ||
+      $("feedBuyer") ||
+      $("sellerPanel");
+    await runTourStep({
+      step: 10,
+      total,
+      title: "Commission and bidding",
+      body: "The bid and commission move from the seller side to the buyer agent after Approve. ENS names keep who paid whom clear on both chats. World AgentKit checks human backing so commission releases or holds. That is why each bubble arrives one after another, left then right, so the money path is easy to follow.",
+      target: commissionTarget,
+      nextLabel: "Next",
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    await runTourStep({
+      step: 11,
+      total,
+      title: "Names, humans, money",
+      body: "ENS is the name, the tree, and the lock. World AgentKit is the human. USDC is the money.",
+      target: document.querySelector(".brand") || $("worldFab"),
+      nextLabel: "Next",
+    });
+    if (!tourActive || token !== tourToken) return;
+
+    const stars =
+      document.querySelector("#ratingStars") ||
+      document.querySelector(".rating-wrap") ||
+      $("feedBuyer");
+    await runTourStep({
+      step: 12,
+      total,
+      title: "ERC-8004 feedback",
+      body: "Tap the stars to leave on-chain feedback for the Shopify agent. That reputation sticks to the agent record.",
+      target: stars,
+      nextLabel: "Done",
+      action: async () => {
+        const star = document.querySelector('#ratingStars .star[data-v="5"]');
+        if (star) {
+          star.click();
+          await waitWhileBusy(180000).catch(() => {});
+          await sleep(800);
+        }
+      },
+    });
+  } catch (err) {
+    if (String(err.message || err) !== "tour-aborted") {
+      await say($("feedBuyer"), {
+        side: "mid",
+        html: `Tutorial stopped: ${esc(err.message || err)}`,
+        sys: true,
+      });
+    }
+  } finally {
+    tourActive = false;
+    closeTourUi();
+    closeEnsTree();
+    document.querySelectorAll(".pop-wrap.open").forEach((el) => el.classList.remove("open"));
+    const btn = $("tutorialBtn");
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function runTurn(text) {
@@ -975,7 +1491,7 @@ async function runTurn(text) {
     wireEnsInfoClicks($("sellerSub"));
   }
 
-  addBubble($("feedBuyer"), { side: "out", label: "you", html: esc(text) });
+  await say($("feedBuyer"), { side: "out", label: "you", html: esc(text), delay: 500 });
   lockPreviousChoices(text);
   $("q").value = "";
 
@@ -996,7 +1512,7 @@ async function runTurn(text) {
 
     if (data.stopReason !== "ready") {
       clarifying = true;
-      addAgentAsk(data.agentMessage, data.options);
+      await addAgentAsk(data.agentMessage, data.options);
       return;
     }
 
@@ -1005,7 +1521,7 @@ async function runTurn(text) {
     const budget = parsed.maxPriceCents
       ? `$${(parsed.maxPriceCents / 100).toFixed(0)}`
       : "none";
-    addBubble($("feedBuyer"), {
+    await say($("feedBuyer"), {
       side: "inc",
       label: buyerLabel(),
       html: `${esc(data.agentMessage)}<br/>Intent: "${esc(parsed.query)}" · Budget: ${esc(budget)} · via ${esc(data.provider)}`,
@@ -1016,22 +1532,24 @@ async function runTurn(text) {
     const offers = (data.offers || []).slice(0, 5);
     $("sellerSub").textContent = `UCP · ${offers.length} offers`;
 
-    addBubble($("feedBuyer"), {
+    await say($("feedBuyer"), {
       side: "inc",
       label: buyerLabel(),
       html: "Searching Shopify UCP…",
+      delay: 600,
     });
-    addBubble($("feedSeller"), {
+    await say($("feedSeller"), {
       side: "inc",
       label: shopifyLabel(),
       html: `Merchants returning offers under ${ensChip(ensNames.root)}…`,
       sys: true,
+      delay: 600,
     });
 
-    await sleep(350);
+    await sleep(400);
     await renderProductsStaggered(offers);
 
-    addBubble($("feedBuyer"), {
+    await say($("feedBuyer"), {
       side: "inc",
       label: buyerLabel(),
       html: `${offers.length} offers · hover a name for ENS details`,
@@ -1042,8 +1560,8 @@ async function runTurn(text) {
   } catch (err) {
     clarifying = false;
     intentSessionId = null;
-    const msg = err.name === "TimeoutError" ? "Request timed out — try again" : err.message;
-    addBubble($("feedBuyer"), { side: "mid", html: `Error: ${esc(msg)}`, sys: true });
+    const msg = err.name === "TimeoutError" ? "Request timed out. Try again." : err.message;
+    await say($("feedBuyer"), { side: "mid", html: `Error: ${esc(msg)}`, sys: true });
   } finally {
     setBusy(false);
     $("q").focus();
@@ -1085,6 +1603,19 @@ wirePopover("sellerWalletWrap", "sellerWalletBtn", () => {
   } else loadWallet("seller");
 });
 
+$("tutorialBtn")?.addEventListener("click", () => {
+  startWorldCommerceTutorial();
+});
+$("tourSkip")?.addEventListener("click", () => abortTour());
+$("tourNext")?.addEventListener("click", () => {
+  if (tourResolveNext) tourResolveNext();
+});
+window.addEventListener("resize", () => {
+  if (!tourActive) return;
+  const pulsed = document.querySelector(".tour-pulse");
+  if (pulsed) placeTourTip(pulsed);
+});
+
 boot().catch((err) => {
-  $("status").textContent = String(err);
+  console.error(err);
 });

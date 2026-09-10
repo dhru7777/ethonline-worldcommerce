@@ -4,22 +4,42 @@
  * Live path: `@worldcoin/agentkit` → `createAgentBookVerifier().lookupHuman(wallet)`
  * on World Chain AgentBook (no Sandbox required for *lookup*).
  *
- * Registration still needs a verified World ID human:
- *   npx @worldcoin/agentkit-cli register <BUYER_WALLET>
- *
- * Until the buyer wallet is registered, set AGENTKIT_ASSUME_HUMAN_BACKED=true
- * for demo allow, or false to exercise the deny / hold-commission path.
+ * Registration still needs a verified World ID human (Orb + production World App).
+ * Sandbox cannot write AgentBook. When lookup returns null,
+ * AGENTKIT_ASSUME_HUMAN_BACKED=true overlays a *labeled* mock so the demo can
+ * show the commission-release path we built for a human-backed agent.
  */
 import { createAgentBookVerifier } from "@worldcoin/agentkit";
 import { config } from "../config/index.js";
+
+export const AGENTBOOK_MOCK_HUMAN_ID = "demo-human-agentbook-mock";
+
+export function demoHumanId(): string {
+  const raw = (config.agentkit.mockHumanId || AGENTBOOK_MOCK_HUMAN_ID).trim();
+  if (!raw) return AGENTBOOK_MOCK_HUMAN_ID;
+  return raw.startsWith("0x") ? raw : `0x${raw}`;
+}
+
+export function demoWorldUsername(): string | null {
+  const name = (config.worldId.username || "").trim();
+  return name || null;
+}
+
+export const AGENTBOOK_MOCK_NOTE =
+  "Live lookup ran on World Chain AgentBook; this wallet is unregistered (Sandbox cannot write). Demo mock treats the buyer as human-backed so commission can release — the product we considered here.";
 
 export type AgentVerification = {
   agentWallet: string;
   isHumanBacked: boolean;
   humanId: string | null;
+  /** Result of the live `lookupHuman` call, before any demo mock. */
+  liveHumanId: string | null;
+  mocked: boolean;
+  mockNote: string | null;
   checkedAt: string;
   checkedVia:
     | "agentbook-live"
+    | "agentbook-mock"
     | "agentkit-fetch"
     | "demo-assume"
     | "pending";
@@ -28,6 +48,7 @@ export type AgentVerification = {
   capacityTier: "$100" | "$250" | "$500" | "manual-approval-required";
   agentBookContract: string;
   network: string;
+  worldUsername?: string | null;
 };
 
 const AGENTBOOK = {
@@ -44,8 +65,41 @@ function tierForHuman(ok: boolean): AgentVerification["capacityTier"] {
   return "$250";
 }
 
+function emptyFields() {
+  return {
+    liveHumanId: null as string | null,
+    mocked: false,
+    mockNote: null as string | null,
+  };
+}
+
+function mockOverlay(
+  wallet: string,
+  checkedAt: string,
+  liveHumanId: string | null,
+  extraNote?: string,
+): AgentVerification {
+  return {
+    agentWallet: wallet,
+    isHumanBacked: true,
+    humanId: demoHumanId(),
+    liveHumanId,
+    mocked: true,
+    mockNote: extraNote || AGENTBOOK_MOCK_NOTE,
+    checkedAt,
+    checkedVia: "agentbook-mock",
+    chain: "world-chain",
+    failureReason: null,
+    capacityTier: tierForHuman(true),
+    agentBookContract: AGENTBOOK.contract,
+    network: AGENTBOOK.network,
+    worldUsername: demoWorldUsername(),
+  };
+}
+
 /**
  * Resolve whether `agentWallet` is registered in AgentBook as human-backed.
+ * Always attempts live lookup unless AGENTKIT_FORCE_ASSUME=true.
  */
 export async function verifyAgentHumanBacked(
   agentWallet?: string | null,
@@ -65,19 +119,27 @@ export async function verifyAgentHumanBacked(
       capacityTier: "manual-approval-required",
       agentBookContract: AGENTBOOK.contract,
       network: AGENTBOOK.network,
+      ...emptyFields(),
     };
   }
+
+  let liveHumanId: string | null = null;
+  let liveError: string | null = null;
 
   // Prefer live AgentBook (public World Chain) unless forced to demo-only.
   if (!config.agentkit.forceAssume) {
     try {
       const agentBook = createAgentBookVerifier();
       const humanId = await agentBook.lookupHuman(wallet as `0x${string}`);
-      if (humanId) {
+      liveHumanId = humanId ? String(humanId) : null;
+      if (liveHumanId) {
         return {
           agentWallet: wallet,
           isHumanBacked: true,
-          humanId: String(humanId),
+          humanId: liveHumanId,
+          liveHumanId,
+          mocked: false,
+          mockNote: null,
           checkedAt,
           checkedVia: "agentbook-live",
           chain: "world-chain",
@@ -88,12 +150,14 @@ export async function verifyAgentHumanBacked(
         };
       }
 
-      // Not registered — fall through to assume only if enabled.
       if (!config.agentkit.assumeHumanBacked) {
         return {
           agentWallet: wallet,
           isHumanBacked: false,
           humanId: null,
+          liveHumanId: null,
+          mocked: false,
+          mockNote: null,
           checkedAt,
           checkedVia: "agentbook-live",
           chain: "world-chain",
@@ -104,23 +168,27 @@ export async function verifyAgentHumanBacked(
           network: AGENTBOOK.network,
         };
       }
+
+      return mockOverlay(wallet, checkedAt, null);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      liveError = e instanceof Error ? e.message : String(e);
       if (!config.agentkit.assumeHumanBacked) {
         return {
           agentWallet: wallet,
           isHumanBacked: false,
           humanId: null,
+          liveHumanId: null,
+          mocked: false,
+          mockNote: null,
           checkedAt,
           checkedVia: "agentbook-live",
           chain: "world-chain",
-          failureReason: `AgentBook lookup failed: ${msg.slice(0, 200)}`,
+          failureReason: `AgentBook lookup failed: ${liveError.slice(0, 200)}`,
           capacityTier: "manual-approval-required",
           agentBookContract: AGENTBOOK.contract,
           network: AGENTBOOK.network,
         };
       }
-      // else fall through to demo assume
     }
   }
 
@@ -146,6 +214,9 @@ export async function verifyAgentHumanBacked(
             agentWallet: wallet,
             isHumanBacked: ok,
             humanId: ok ? body.humanId || "sandbox-human" : null,
+            liveHumanId,
+            mocked: false,
+            mockNote: null,
             checkedAt,
             checkedVia: "agentkit-fetch",
             chain: "world-chain",
@@ -161,18 +232,27 @@ export async function verifyAgentHumanBacked(
     }
   }
 
-  const assume = config.agentkit.assumeHumanBacked;
+  if (config.agentkit.assumeHumanBacked) {
+    const note = liveError
+      ? `${AGENTBOOK_MOCK_NOTE} Live lookup error: ${liveError.slice(0, 120)}`
+      : config.agentkit.forceAssume
+        ? "AGENTKIT_FORCE_ASSUME=true skipped live lookup. Demo mock treats the buyer as human-backed."
+        : AGENTBOOK_MOCK_NOTE;
+    return mockOverlay(wallet, checkedAt, liveHumanId, note);
+  }
+
   return {
     agentWallet: wallet,
-    isHumanBacked: assume,
-    humanId: assume ? "demo-human" : null,
+    isHumanBacked: false,
+    humanId: null,
+    liveHumanId,
+    mocked: false,
+    mockNote: null,
     checkedAt,
     checkedVia: "demo-assume",
     chain: "world-chain",
-    failureReason: assume
-      ? null
-      : "Not in AgentBook and AGENTKIT_ASSUME_HUMAN_BACKED=false",
-    capacityTier: tierForHuman(assume),
+    failureReason: "Not in AgentBook and AGENTKIT_ASSUME_HUMAN_BACKED=false",
+    capacityTier: tierForHuman(false),
     agentBookContract: AGENTBOOK.contract,
     network: AGENTBOOK.network,
   };

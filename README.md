@@ -1,8 +1,11 @@
 # worldCommerce
 
-ENSv2 agent namespaces for Shopify UCP commerce — buyer roles under `dheeraj.eth`, merchant agents under `shopify.eth`, ERC-8004 identity, Sepolia MockUSDC settlement, and World AgentKit human-backing.
+Shopping agents today are hex wallets: no name, no scoped permissions, and no proof they spend for a real person. Merchants will pay a commission to get chosen — without a unique-human check that payout is bounty farming. Catalog hits have no on-chain identity unless you hard-code brands.
+
+worldCommerce is agentic Shopify UCP commerce where the agent works for the human. Buyer roles live under `dheeraj.eth`, merchants under `shopify.eth` (ENSv2 + EAC). ERC-8004 is who the agents are. World AgentKit decides whether they are human-backed before commission releases. Sepolia MockUSDC settles only after the human approves.
 
 **Live demo:** [https://worldcommerce-production.up.railway.app](https://worldcommerce-production.up.railway.app)  
+**ETHGlobal showcase:** [world-commerce](https://ethglobal.com/showcase/world-commerce-om3cg)
 
 ## Final Submission
 
@@ -12,11 +15,46 @@ ENSv2 agent namespaces for Shopify UCP commerce — buyer roles under `dheeraj.e
 | **Project**          | worldCommerce                                                                           |
 | **Track focus**      | ENSv2 (Sepolia hackathon) · ERC-8004 · Shopify UCP · x402-style settlement              |
 | **Demo**             | Split-screen buyer × Shopify agents + bottom-left **ENS Tree**                          |
-| **Chain**            | Ethereum Sepolia (ENS, 8004, MockUSDC)                                                  |
-| **Buyer agent**      | ERC-8004 `#9638` · `agent.dheeraj.eth`                                                  |
-| **Seller / Shopify** | ERC-8004 `#6832` · `agent.shopify.eth`                                                  |
+| **Showcase**         | [ethglobal.com/showcase/world-commerce-om3cg](https://ethglobal.com/showcase/world-commerce-om3cg) |
+| **Chain**            | Ethereum Sepolia (ENS, MockUSDC) · ERC-8004 on Sepolia + Base Sepolia                    |
+| **Buyer agent**      | ERC-8004 [`#9638` Sepolia](https://testnet.8004scan.io/agents/sepolia/9638) · [`agent.dheeraj.eth`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth) |
+| **Seller / Shopify** | ERC-8004 [`#6832` Base Sepolia](https://testnet.8004scan.io/agents/base-sepolia/6832?tab=services) · [`agent.shopify.eth`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth) |
 | **Repo**             | [dhru7777/ethonline-worldcommerce](https://github.com/dhru7777/ethonline-worldcommerce) |
 | **Presentation**     | [View presentation](https://canva.link/e4y3bs07jpn2opb)                                |
+
+
+## On-chain links
+
+Explorer: [ETHOnline ENSv2 Sepolia](https://hackathon-deployment-portal-app.ens-cf.workers.dev/). Nested `UserRegistry` contracts show as **Subregistry** on each name; **Subnames** lists children under that registry.
+
+### ERC-8004
+
+| Agent | Chain | 8004scan |
+| ----- | ----- | -------- |
+| Buyer `#9638` | Ethereum Sepolia | [testnet.8004scan.io/agents/sepolia/9638](https://testnet.8004scan.io/agents/sepolia/9638) |
+| Seller `#6832` | Base Sepolia · services | [testnet.8004scan.io/agents/base-sepolia/6832?tab=services](https://testnet.8004scan.io/agents/base-sepolia/6832?tab=services) |
+
+### Buyer tree — `dheeraj.eth`
+
+| Name | Explorer | Subnames | Subregistry |
+| ---- | -------- | -------- | ----------- |
+| `dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/dheeraj.eth/subnames) | [`0xC22c…9358`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0xC22c46275CaAb58A9b1f1ffF6C30B7231c959358) |
+| `agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth/subnames) | [`0x20e7…05fb`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0x20e7fC9bdD809095c6C3958D6Ee084957F7A05fb) |
+| `intent.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/intent.agent.dheeraj.eth/subnames) | — |
+| `guardrail.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/guardrail.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/guardrail.agent.dheeraj.eth/subnames) | — |
+| `payment.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/payment.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/payment.agent.dheeraj.eth/subnames) | — |
+| `feedback.agent.dheeraj.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/feedback.agent.dheeraj.eth) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/feedback.agent.dheeraj.eth/subnames) | — |
+
+Buyer wallet names: [`0xCD64…9D91`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/addr/0xCD643061B9a5D96AD8595B252fE098EA33a39D91/names)
+
+### Seller tree — `shopify.eth`
+
+| Name | Explorer | Subnames | Subregistry |
+| ---- | -------- | -------- | ----------- |
+| `shopify.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/shopify.eth/subnames) | [`0x76fE…0B54`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0x76fE166152b3CbcF62bECBEC5087DfE8C3b00B54) |
+| `agent.shopify.eth` | [name](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth) · [records](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth/records) | [subnames](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth/subnames) | [`0xE9A9…1B5b`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/registry/0xE9A977275D5af1d30cC84EfC8b96Ce80Fd0f1B5b) |
+
+Merchant leaves (`lindt.agent.shopify.eth`, UCP slugs, `commission.{slug}.agent.shopify.eth`) are minted under the `agent.shopify.eth` subregistry from this search’s hits — open **Subnames** on `agent.shopify.eth`.
 
 
 ## Product Rule

@@ -13,9 +13,9 @@ worldCommerce is agentic Shopify UCP commerce where the agent works for the huma
 | -------------------- | --------------------------------------------------------------------------------------- |
 | **Project**          | worldCommerce                                                                           |
 | **Track focus**      | ENSv2 (Sepolia hackathon) · ERC-8004 · Shopify UCP · x402-style settlement              |
-| **Demo**             | Split-screen buyer × Shopify agents + bottom-left **ENS Tree**                          |
+| **Demo**             | Split-screen buyer × Shopify agents + bottom-left **ENS Tree** + Worldlookup                         |
 | **Showcase**         | [ETHGlobal showcase](https://ethglobal.com/showcase/world-commerce-om3cg) |
-| **Chain**            | Ethereum Sepolia (ENS, MockUSDC) · ERC-8004 on Sepolia + Base Sepolia                    |
+| **Chain**            | Ethereum Sepolia (ENS, MockUSDC) · ERC-8004 on Sepolia + Base Sepolia   + Worldchain                 |
 | **Buyer agent**      | ERC-8004 [`#9638` Sepolia](https://testnet.8004scan.io/agents/sepolia/9638) · [`agent.dheeraj.eth`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.dheeraj.eth) |
 | **Seller / Shopify** | ERC-8004 [`#6832` Base Sepolia](https://testnet.8004scan.io/agents/base-sepolia/6832?tab=services) · [`agent.shopify.eth`](https://hackathon-deployment-portal-app.ens-cf.workers.dev/agent.shopify.eth) |
 | **Repo**             | [dhru7777/ethonline-worldcommerce](https://github.com/dhru7777/ethonline-worldcommerce) |

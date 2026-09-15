@@ -61,7 +61,7 @@ That flow works because the buyer already has a funded wallet sitting onchain. C
 
 That is where the Agentic Acquirer sits, between the x402 facilitator and the Visa network. It does three things, one in each time domain.
 
-![Agentic Acquirer flow: instant stablecoin fronting, card clearing one to two days later, and a 120-day chargeback tail the acquirer absorbs alone.](agentic-payments-assets/agentic-acquirer-flow.png)
+![Agentic Acquirer flow: instant stablecoin fronting, card clearing one to two days later, and a 120-day chargeback tail the acquirer absorbs alone.](agentic-payments-assets/agentic-acquirer-flow.svg)
 
 In the **instant leg** (seconds), it runs a real-time risk check, puts a hold on the card, and fronts stablecoin from its own treasury so the seller gets paid and walks away in seconds.
 
@@ -89,7 +89,7 @@ None of this works if protection only runs one direction. If a seller gets paid 
 
 Once the card program is live and the protection layer is producing real dispute and loss data, the operator holds something nobody building agentic payments infrastructure has today: actual loss-rate history on agent-initiated spend, plus a registered position inside the card network rules that makes that spend enforceable. That combination is what underwriting is built on. It is the difference between guessing what a credit line for an agent should cost and actually pricing it.
 
-That is the direction this infrastructure points toward, postpaid credit issued directly to agents, funded from real treasury inventory the same way the card program already works, not against a receivable. It is worth stating as the vision this work is building toward, not as something to commit to building next.
+That is the direction this infrastructure points toward, postpaid credit issued directly to agents, funded from real treasury inventory the same way the card program already works, not against a receivable.
 
 ## 7. Risks and Open Questions
 
